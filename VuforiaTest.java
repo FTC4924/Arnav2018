@@ -103,7 +103,7 @@ import java.util.List;
  * is explained below.
  */
 
-@Autonomous(name="Concept: Vuforia Rover Nav", group ="Concept")
+@TeleOp(name="Concept: Vuforia Rover Nav", group ="Concept")
 
 public class VuforiaTest extends LinearOpMode {
     DcMotor frontLeft;
@@ -152,7 +152,7 @@ public class VuforiaTest extends LinearOpMode {
     private static final double GYRO_TURN_TOLERANCE_DEGREES = 3;
     boolean landed = false;
     boolean latched = false;
-    boolean kicked = false;
+    boolean read = false;
 
     // Select which camera you want use.  The FRONT camera is the one on the same side as the screen.
     // Valid choices are:  BACK or FRONT
@@ -330,9 +330,9 @@ public class VuforiaTest extends LinearOpMode {
          * In this example, it is centered (left to right), but 110 mm forward of the middle of the robot, and 200 mm above ground level.
          */
 
-        final int CAMERA_FORWARD_DISPLACEMENT  = 110;   // eg: Camera is 110 mm in front of robot center
-        final int CAMERA_VERTICAL_DISPLACEMENT = 200;   // eg: Camera is 200 mm above ground
-        final int CAMERA_LEFT_DISPLACEMENT     = 0;     // eg: Camera is ON the robot's center line
+        final int CAMERA_FORWARD_DISPLACEMENT  = 495;   // eg: Camera is 110 mm in front of robot center
+        final int CAMERA_VERTICAL_DISPLACEMENT = 600;   // eg: Camera is 200 mm above ground
+        final int CAMERA_LEFT_DISPLACEMENT     = 93;     // eg: Camera is ON the robot's center line
 
         OpenGLMatrix phoneLocationOnRobot = OpenGLMatrix
                 .translation(CAMERA_FORWARD_DISPLACEMENT, CAMERA_LEFT_DISPLACEMENT, CAMERA_VERTICAL_DISPLACEMENT)
@@ -375,11 +375,15 @@ public class VuforiaTest extends LinearOpMode {
                 telemetry.update();
             }
 
-            if (landed&& latched) {
+            if (landed&& latched && !read) {
                 // check all the trackable target to see which one (if any) is visible.
-                turnToPosition(0.5,45);
                 encoderDrive(0.5,3,3,5);
+                turnToPosition(0.5,55);
+                encoderDrive(0.5,10.5,10.5,5);
+                read = true;
+            }
 
+            if (landed && latched && read){
                 targetVisible = false;
                 for (VuforiaTrackable trackable : allTrackables) {
                     if (((VuforiaTrackableDefaultListener) trackable.getListener()).isVisible()) {
