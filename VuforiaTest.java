@@ -384,6 +384,7 @@ public class VuforiaTest extends LinearOpMode {
             }
 
             if (landed && latched && read){
+                encoderDrive(0.2,-1,-1,3);
                 targetVisible = false;
                 for (VuforiaTrackable trackable : allTrackables) {
                     if (((VuforiaTrackableDefaultListener) trackable.getListener()).isVisible()) {
@@ -410,10 +411,18 @@ public class VuforiaTest extends LinearOpMode {
                     // express the rotation of the robot in degrees.
                     Orientation rotation = Orientation.getOrientation(lastLocation, EXTRINSIC, XYZ, DEGREES);
                     telemetry.addData("Rot (deg)", "{Roll, Pitch, Heading} = %.0f, %.0f, %.0f", rotation.firstAngle, rotation.secondAngle, rotation.thirdAngle);
+                    if (translation.get(1) > -5 * mmPerInch) {
+                        telemetry.addData("Done","Done");
+                        telemetry.update();
+                        break;
+                        
+                    }
                 } else {
-                    telemetry.addData("Visible Target", "none");
+                    //telemetry.addData("Visible Target", "none");
                 }
                 telemetry.update();
+                sleep(1000);
+
             }
         }
     }
