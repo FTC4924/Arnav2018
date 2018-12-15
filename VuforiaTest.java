@@ -37,6 +37,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -52,6 +53,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
+import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 
 import static org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.DEGREES;
 import static org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.XYZ;
@@ -59,49 +61,17 @@ import static org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.YZX;
 import static org.firstinspires.ftc.robotcore.external.navigation.AxesReference.EXTRINSIC;
 import static org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer.CameraDirection.BACK;
 import static org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer.CameraDirection.FRONT;
+import static org.firstinspires.ftc.robotcore.external.tfod.TfodRoverRuckus.LABEL_GOLD_MINERAL;
+import static org.firstinspires.ftc.robotcore.external.tfod.TfodRoverRuckus.LABEL_SILVER_MINERAL;
+import static org.firstinspires.ftc.robotcore.external.tfod.TfodRoverRuckus.TFOD_MODEL_ASSET;
+
+import org.firstinspires.ftc.robotcore.external.tfod.*;
+
 
 
 import java.util.ArrayList;
 import java.util.List;
 
-
-/**
- * This 2018-2019 OpMode illustrates the basics of using the Vuforia localizer to determine
- * positioning and orientation of robot on the FTC field.
- * The code is structured as a LinearOpMode
- *
- * Vuforia uses the phone's camera to inspect it's surroundings, and attempt to locate target images.
- *
- * When images are located, Vuforia is able to determine the position and orientation of the
- * image relative to the camera.  This sample code than combines that information with a
- * knowledge of where the target images are on the field, to determine the location of the camera.
- *
- * This example assumes a "square" field configuration where the red and blue alliance stations
- * are on opposite walls of each other.
- *
- * From the Audience perspective, the Red Alliance station is on the right and the
- * Blue Alliance Station is on the left.
-
- * The four vision targets are located in the center of each of the perimeter walls with
- * the images facing inwards towards the robots:
- *     - BlueRover is the Mars Rover image target on the wall closest to the blue alliance
- *     - RedFootprint is the Lunar Footprint target on the wall closest to the red alliance
- *     - FrontCraters is the Lunar Craters image target on the wall closest to the audience
- *     - BackSpace is the Deep Space image target on the wall farthest from the audience
- *
- * A final calculation then uses the location of the camera on the robot to determine the
- * robot's location and orientation on the field.
- *
- * @see VuforiaLocalizer
- * @see VuforiaTrackableDefaultListener
- * see  ftc_app/doc/tutorial/FTC_FieldCoordinateSystemDefinition.pdf
- *
- * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
- * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list.
- *
- * IMPORTANT: In order to use this OpMode, you need to obtain your own Vuforia license key as
- * is explained below.
- */
 
 @TeleOp(name="Concept: Vuforia Rover Nav", group ="Concept")
 
@@ -116,23 +86,12 @@ public class VuforiaTest extends LinearOpMode {
     CRServo collectionServo;
     private ElapsedTime runtime = new ElapsedTime();
 
-
-    /*
-     * IMPORTANT: You need to obtain your own license key to use Vuforia. The string below with which
-     * 'parameters.vuforiaLicenseKey' is initialized is for illustration only, and will not function.
-     * A Vuforia 'Development' license key, can be obtained free of charge from the Vuforia developer
-     * web site at https://developer.vuforia.com/license-manager.
-     *
-     * Vuforia license keys are always 380 characters long, and look as if they contain mostly
-     * random data. As an example, here is a example of a fragment of a valid key:
-     *      ... yIgIzTqZ4mWjk9wd3cZO9T1axEqzuhxoGlfOOI2dRzKS4T0hQ8kT ...
-     * Once you've obtained a license key, copy the string from the Vuforia web site
-     * and paste it in to your code on the next line, between the double quotes.
-     */
     private static final String VUFORIA_KEY = "AaeF/Hb/////AAABmXyUA/dvl08Hn6O8IUco1axEjiRtYCVASeXGzCnFiMaizR1b3cvD+SXpU1UHHbSpnyem0dMfGb6wce32IWKttH90xMTnLjY4aXBEYscpQbX/FzUi6uf5M+sXDVNMtaVxLDGOb1phJ8tg9/Udb1cxIUCifI+AHmcwj3eknyY1ZapF81n/R0mVSmuyApS2oGQLnETWaWK+kxkx8cGnQ0Nj7a79gStXqm97obOdzptw7PdDNqOfSLVcyKCegEO0zbGoInhRMDm0MPPTxwnBihZsjDuz+I5kDEZJZfBWZ9O1PZMeFmhe6O8oFwE07nFVoclw7j2P6qHbsKTabg3w9w4ZdeTSZI4sV2t9OhbF13e0MWeV";;
 
-    // Since ImageTarget trackables use mm to specifiy their dimensions, we must use mm for all the physical dimension.
-    // We will define some constants and conversions here
+    private VuforiaLocalizer vuforia;
+
+    private TFObjectDetector tfod;
+
     private static final float mmPerInch        = 25.4f;
     private static final float mmFTCFieldWidth  = (12*6) * mmPerInch;       // the width of the FTC field (from the center point to the outer panels)
     private static final float mmTargetHeight   = (6) * mmPerInch;          // the height of the center of the target image above the floor
@@ -152,23 +111,16 @@ public class VuforiaTest extends LinearOpMode {
     private static final double GYRO_TURN_TOLERANCE_DEGREES = 3;
     boolean landed = false;
     boolean latched = false;
+    boolean hit = false;
     boolean read = false;
+    int state = 1;
 
-    // Select which camera you want use.  The FRONT camera is the one on the same side as the screen.
-    // Valid choices are:  BACK or FRONT
     private static final VuforiaLocalizer.CameraDirection CAMERA_CHOICE = BACK;
 
     private OpenGLMatrix lastLocation = null;
     private boolean targetVisible = false;
 
-    /**
-     * {@link #vuforia} is the variable we will use to store our instance of the Vuforia
-     * localization engine.
-     */
-    VuforiaLocalizer vuforia;
-
     @Override public void runOpMode() {
-
 
         linearServo = hardwareMap.get(Servo.class, "linearServo");
         collectionServo = hardwareMap.get(CRServo.class, "collectionServo");
@@ -189,11 +141,11 @@ public class VuforiaTest extends LinearOpMode {
         backLeft.setDirection(DcMotor.Direction.FORWARD);
 
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
-        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
-        parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
         parameters.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
-        parameters.loggingEnabled      = true;
-        parameters.loggingTag          = "IMU";
+        parameters.loggingEnabled = true;
+        parameters.loggingTag = "IMU";
         parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
 
         // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
@@ -219,8 +171,8 @@ public class VuforiaTest extends LinearOpMode {
 
         // VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
 
-        parameters1.vuforiaLicenseKey = VUFORIA_KEY ;
-        parameters1.cameraDirection   = CAMERA_CHOICE;
+        parameters1.vuforiaLicenseKey = VUFORIA_KEY;
+        parameters1.cameraDirection = CAMERA_CHOICE;
 
         //  Instantiate the Vuforia engine
         vuforia = ClassFactory.getInstance().createVuforia(parameters1);
@@ -292,7 +244,7 @@ public class VuforiaTest extends LinearOpMode {
          */
         OpenGLMatrix frontCratersLocationOnField = OpenGLMatrix
                 .translation(-mmFTCFieldWidth, 0, mmTargetHeight)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0 , 90));
+                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, 90));
         frontCraters.setLocation(frontCratersLocationOnField);
 
         /**
@@ -307,32 +259,10 @@ public class VuforiaTest extends LinearOpMode {
                 .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, -90));
         backSpace.setLocation(backSpaceLocationOnField);
 
-        /**
-         * Create a transformation matrix describing where the phone is on the robot.
-         *
-         * The coordinate frame for the robot looks the same as the field.
-         * The robot's "forward" direction is facing out along X axis, with the LEFT side facing out along the Y axis.
-         * Z is UP on the robot.  This equates to a bearing angle of Zero degrees.
-         *
-         * The phone starts out lying flat, with the screen facing Up and with the physical top of the phone
-         * pointing to the LEFT side of the Robot.  It's very important when you test this code that the top of the
-         * camera is pointing to the left side of the  robot.  The rotation angles don't work if you flip the phone.
-         *
-         * If using the rear (High Res) camera:
-         * We need to rotate the camera around it's long axis to bring the rear camera forward.
-         * This requires a negative 90 degree rotation on the Y axis
-         *
-         * If using the Front (Low Res) camera
-         * We need to rotate the camera around it's long axis to bring the FRONT camera forward.
-         * This requires a Positive 90 degree rotation on the Y axis
-         *
-         * Next, translate the camera lens to where it is on the robot.
-         * In this example, it is centered (left to right), but 110 mm forward of the middle of the robot, and 200 mm above ground level.
-         */
 
-        final int CAMERA_FORWARD_DISPLACEMENT  = 495;   // eg: Camera is 110 mm in front of robot center
+        final int CAMERA_FORWARD_DISPLACEMENT = 495;   // eg: Camera is 110 mm in front of robot center
         final int CAMERA_VERTICAL_DISPLACEMENT = 600;   // eg: Camera is 200 mm above ground
-        final int CAMERA_LEFT_DISPLACEMENT     = 93;     // eg: Camera is ON the robot's center line
+        final int CAMERA_LEFT_DISPLACEMENT = 93;     // eg: Camera is ON the robot's center line
 
         OpenGLMatrix phoneLocationOnRobot = OpenGLMatrix
                 .translation(CAMERA_FORWARD_DISPLACEMENT, CAMERA_LEFT_DISPLACEMENT, CAMERA_VERTICAL_DISPLACEMENT)
@@ -340,9 +270,8 @@ public class VuforiaTest extends LinearOpMode {
                         CAMERA_CHOICE == FRONT ? 90 : -90, 0, 0));
 
         /**  Let all the trackable listeners know where the phone is.  */
-        for (VuforiaTrackable trackable : allTrackables)
-        {
-            ((VuforiaTrackableDefaultListener)trackable.getListener()).setPhoneInformation(phoneLocationOnRobot, parameters1.cameraDirection);
+        for (VuforiaTrackable trackable : allTrackables) {
+            ((VuforiaTrackableDefaultListener) trackable.getListener()).setPhoneInformation(phoneLocationOnRobot, parameters1.cameraDirection);
         }
 
         /** Wait for the game to begin */
@@ -353,79 +282,159 @@ public class VuforiaTest extends LinearOpMode {
         /** Start tracking the data sets we care about. */
         targetsRoverRuckus.activate();
         while (opModeIsActive()) {
-            if (!landed && !latched) {
-                runtime.reset();
-                linearServo.scaleRange(0.0, 1.0);
-                linearMotor.setTargetPosition(-7122);
-                linearMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                linearMotor.setPower(0.5);
-                if (linearMotor.getCurrentPosition() < -7100){
-                    landed = true;
-                    telemetry.addData("Status:", "Landed");
-                    telemetry.update();
-                }
-            }
-            if (landed && !latched){
-                linearServo.setPosition(1);
-                collectionServo.setPower(1);
-                sleep(1250);
-                collectionServo.setPower(0);
-                latched = true;
-                telemetry.addData("Status:", "Latched");
-                telemetry.update();
-            }
-
-            if (landed&& latched && !read) {
-                // check all the trackable target to see which one (if any) is visible.
-                encoderDrive(0.5,3,3,5);
-                turnToPosition(0.5,55);
-                encoderDrive(0.5,10.5,10.5,5);
-                read = true;
-            }
-
-            if (landed && latched && read){
-                encoderDrive(0.2,-1,-1,3);
-                targetVisible = false;
-                for (VuforiaTrackable trackable : allTrackables) {
-                    if (((VuforiaTrackableDefaultListener) trackable.getListener()).isVisible()) {
-                        telemetry.addData("Visible Target", trackable.getName());
-                        targetVisible = true;
-
-                        // getUpdatedRobotLocation() will return null if no new information is available since
-                        // the last time that call was made, or if the trackable is not currently visible.
-                        OpenGLMatrix robotLocationTransform = ((VuforiaTrackableDefaultListener) trackable.getListener()).getUpdatedRobotLocation();
-                        if (robotLocationTransform != null) {
-                            lastLocation = robotLocationTransform;
-                        }
-                        break;
-                    }
-                }
-
-                // Provide feedback as to where the robot is located (if we know).
-                if (targetVisible) {
-                    // express position (translation) of robot in inches.
-                    VectorF translation = lastLocation.getTranslation();
-                    telemetry.addData("Pos (in)", "{X, Y, Z} = %.1f, %.1f, %.1f",
-                            translation.get(0) / mmPerInch, translation.get(1) / mmPerInch, translation.get(2) / mmPerInch);
-
-                    // express the rotation of the robot in degrees.
-                    Orientation rotation = Orientation.getOrientation(lastLocation, EXTRINSIC, XYZ, DEGREES);
-                    telemetry.addData("Rot (deg)", "{Roll, Pitch, Heading} = %.0f, %.0f, %.0f", rotation.firstAngle, rotation.secondAngle, rotation.thirdAngle);
-                    if (translation.get(1) > -5 * mmPerInch) {
-                        telemetry.addData("Done","Done");
+            switch (state){
+                case 1:{
+                    runtime.reset();
+                    linearServo.scaleRange(0.0, 1.0);
+                    linearMotor.setTargetPosition(-7122);
+                    linearMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    linearMotor.setPower(0.5);
+                    if (linearMotor.getCurrentPosition() < -7100) {
+                        landed = true;
+                        telemetry.addData("Status:", "Landed");
                         telemetry.update();
+                        state++;
                         break;
-                        
                     }
-                } else {
-                    //telemetry.addData("Visible Target", "none");
+                    break;
                 }
-                telemetry.update();
-                sleep(1000);
+                case 2:{
+                    linearServo.setPosition(1);
+                    collectionServo.setPower(1);
+                    sleep(1250);
+                    collectionServo.setPower(0);
+                    latched = true;
+                    telemetry.addData("Status:", "Latched");
+                    telemetry.update();
+                    state++;
+                    break;
 
+                }
+                case 3:{
+
+                    if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
+                        initTfod();
+                    } else {
+                        telemetry.addData("Sorry!", "This device is not compatible with TFOD");
+                    }
+                    /** Activate Tensor Flow Object Detection. */
+                    if (tfod != null) {
+                        tfod.activate();
+                    }
+                    while (opModeIsActive()&& !read) {
+                        if (tfod != null) {
+                            // getUpdatedRecognitions() will return null if no new information is available since
+                            // the last time that call was made.
+                            List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+                            if (updatedRecognitions != null) {
+                                telemetry.addData("# Object Detected", updatedRecognitions.size());
+                                if (updatedRecognitions.size() == 3) {
+                                    int goldMineralX = -1;
+                                    int silverMineral1X = -1;
+                                    int silverMineral2X = -1;
+                                    for (Recognition recognition : updatedRecognitions) {
+                                        if (recognition.getLabel().equals(LABEL_GOLD_MINERAL)) {
+                                            goldMineralX = (int) recognition.getLeft();
+                                        } else if (silverMineral1X == -1) {
+                                            silverMineral1X = (int) recognition.getLeft();
+                                        } else {
+                                            silverMineral2X = (int) recognition.getLeft();
+                                        }
+                                    }
+                                    if (goldMineralX != -1 && silverMineral1X != -1 && silverMineral2X != -1 && !read) {
+                                        if (goldMineralX < silverMineral1X && goldMineralX < silverMineral2X) {
+                                            read = true;
+                                            state++;
+                                            telemetry.addData("Gold Mineral Position", "Left");
+                                            encoderDrive(DRIVE_SPEED, 2, 2, 5);
+                                            turnToPosition(.5, 25);
+                                            encoderDrive(DRIVE_SPEED, 12, 12, 5);
+                                        } else if (goldMineralX > silverMineral1X && goldMineralX > silverMineral2X) {
+                                            read = true;
+                                            state++;
+                                            telemetry.addData("Gold Mineral Position", "Right");
+                                            encoderDrive(DRIVE_SPEED, 2, 2, 5);
+                                            turnToPosition(.5, -25);
+                                            encoderDrive(DRIVE_SPEED, 12, 12, 5);
+                                        } else {
+                                            read = true;
+                                            state++;
+                                            encoderDrive(DRIVE_SPEED, 2, 2, 5);
+                                            telemetry.addData("Gold Mineral Position", "Center");
+                                            encoderDrive(DRIVE_SPEED, 10, 10, 5);
+                                        }
+                                        tfod.shutdown();
+                                    }
+                                } else if (runtime.seconds() >= 10 && !read) {
+                                    //It has been 20 seconds and we cannot identify the gold
+                                    //Assume middle
+                                    read = true;
+                                    state++;
+                                    encoderDrive(DRIVE_SPEED, 2, 2, 5);
+                                    telemetry.addData("Gold Mineral Position", "Unknown");
+                                    encoderDrive(DRIVE_SPEED, 10, 10, 5);
+                                    tfod.shutdown();
+                                }
+                                telemetry.update();
+                            }
+                        }
+                    }
+                    if (tfod != null) {
+                        tfod.shutdown();
+                        read = true;
+                        state++;
+                    }
+                }
+                case 4:{
+                    encoderDrive(0.5,-11,-11,5);
+                    turnToPosition(0.5,55);
+                    encoderDrive(0.5,15,15,5);
+                    hit=true;
+                    state++;
+                }
+                case 5:{
+                    setMotorsPowers(-0.05, DRIVE_BASE_MOTORS);
+                    targetVisible = false;
+                    for (VuforiaTrackable trackable : allTrackables) {
+                        if (((VuforiaTrackableDefaultListener) trackable.getListener()).isVisible()) {
+                            telemetry.addData("Visible Target", trackable.getName());
+                            targetVisible = true;
+
+                            // getUpdatedRobotLocation() will return null if no new information is available since
+                            // the last time that call was made, or if the trackable is not currently visible.
+                            OpenGLMatrix robotLocationTransform = ((VuforiaTrackableDefaultListener) trackable.getListener()).getUpdatedRobotLocation();
+                            if (robotLocationTransform != null) {
+                                lastLocation = robotLocationTransform;
+                            }
+                            break;
+                        }
+                    }
+
+                    // Provide feedback as to where the robot is located (if we know).
+                    if (targetVisible) {
+                        // express position (translation) of robot in inches.
+                        VectorF translation = lastLocation.getTranslation();
+                        telemetry.addData("Pos (in)", "{X, Y, Z} = %.1f, %.1f, %.1f",
+                                translation.get(0) / mmPerInch, translation.get(1) / mmPerInch, translation.get(2) / mmPerInch);
+
+                        // express the rotation of the robot in degrees.
+                        Orientation rotation = Orientation.getOrientation(lastLocation, EXTRINSIC, XYZ, DEGREES);
+                        telemetry.addData("Rot (deg)", "{Roll, Pitch, Heading} = %.0f, %.0f, %.0f", rotation.firstAngle, rotation.secondAngle, rotation.thirdAngle);
+                        if (translation.get(1) < 0 * mmPerInch) {
+                            telemetry.addData("Done", "Done");
+                            telemetry.update();
+                            setMotorsPowers(0.00, DRIVE_BASE_MOTORS);
+                        }
+                    } else {
+                        //telemetry.addData("Visible Target", "none");
+                    }
+                    telemetry.update();
+                    sleep(1000);
+                }
             }
         }
     }
+
     public void encoderDrive(double speed,
                              double leftInches, double rightInches,
                              double timeoutS) {
@@ -531,6 +540,31 @@ public class VuforiaTest extends LinearOpMode {
 
         for (DcMotor d : motors)
             d.setPower(power);
+    }
+    private void initVuforia() {
+        /*
+         * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
+         */
+        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
+
+        parameters.vuforiaLicenseKey = VUFORIA_KEY;
+        parameters.cameraDirection = VuforiaLocalizer.CameraDirection.BACK;
+
+        //  Instantiate the Vuforia engine
+        vuforia = ClassFactory.getInstance().createVuforia(parameters);
+
+        // Loading trackables is not necessary for the Tensor Flow Object Detection engine.
+    }
+
+    /**
+     * Initialize the Tensor Flow Object Detection engine.
+     */
+    private void initTfod() {
+        int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+                "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
+        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
+        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_GOLD_MINERAL, LABEL_SILVER_MINERAL);
     }
 }
 

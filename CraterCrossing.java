@@ -81,7 +81,17 @@ public class CraterCrossing extends LinearOpMode {
     Servo linearServo;
     CRServo collectionServo;
 
-
+    static final int DOWN_ENCODERS = -7100;
+    static final int TIME_OUT = 7;
+    static final int READ_FORWARD = 2;
+    static final double STANDARD_POWER = 0.5;
+    static final int JEWEL_AMOUNT = 3;
+    static final int TURNING_AMOUNT = 25;
+    static final int FORWARD_SIDE = 13;
+    static final int FORWARD_MIDDLE = 10;
+    static final int MAX_TIME = 15;
+    static final int HIGH = 1;
+    static final int LOW = 0;
     static final double     COUNTS_PER_MOTOR_REV    = 1425.2 ;
     static final double     DRIVE_GEAR_REDUCTION    = 2.0 ;     // This is < 1.0 if geared UP
     static final double     WHEEL_DIAMETER_INCHES   = 4.0 ;     // For figuring circumference
@@ -97,7 +107,8 @@ public class CraterCrossing extends LinearOpMode {
     private static final double GYRO_TURN_TOLERANCE_DEGREES = 3;
     boolean landed = false;
     boolean latched = false;
-    boolean kicked = false;
+    boolean hit = false;
+    int state = 1;
 
 
     /*
@@ -184,103 +195,115 @@ public class CraterCrossing extends LinearOpMode {
         telemetry.update();
 
          while (opModeIsActive()) {
-             if (!landed && !latched) {
-                 runtime.reset();
-                 linearServo.scaleRange(0.0, 1.0);
-                 linearMotor.setTargetPosition(-7122);
-                 linearMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                 linearMotor.setPower(0.5);
-                 if (linearMotor.getCurrentPosition() < -7100){
-                     landed = true;
-                     telemetry.addData("Status:", "Landed");
+             switch(state){
+                 case 1:{
+                     telemetry.addData("State: ",state);
                      telemetry.update();
+                     runtime.reset();
+                     linearMotor.setTargetPosition(DOWN_ENCODERS - 20);
+                     linearMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                     linearMotor.setPower(STANDARD_POWER);
+                     if (linearMotor.getCurrentPosition() < DOWN_ENCODERS){
+                         telemetry.addData("Status:", "Landed");
+                         telemetry.update();
+                         state++;
+                         break;
+                     }
+                     break;
                  }
-             }
-             if (landed && !latched){
-                 linearServo.setPosition(1);
-                 collectionServo.setPower(1);
-                 sleep(1250);
-                 collectionServo.setPower(0);
-                 latched = true;
-                 telemetry.addData("Status:", "Latched");
-                 telemetry.update();
-             }
-             if (landed && latched) {
-                 if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
-                     initTfod();
-                 } else {
-                     telemetry.addData("Sorry!", "This device is not compatible with TFOD");
+                 case 2:{
+                     telemetry.addData("State: ",state);
+                     telemetry.update();
+                     linearServo.scaleRange(LOW, HIGH);
+                     linearServo.setPosition(1);
+                     collectionServo.setPower(1);
+                     sleep(1250);
+                     collectionServo.setPower(0);
+                     telemetry.addData("Status:", "Latched");
+                     telemetry.update();
+                     state++;
+                     break;
                  }
-                 /** Activate Tensor Flow Object Detection. */
-                 if (tfod != null) {
-                     tfod.activate();
-                 }
-                 while (opModeIsActive()) {
+                 case 3:{
+                     telemetry.addData("State: ",state);
+                     telemetry.update();
+                     if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
+                         initTfod();
+                     } else {
+                         telemetry.addData("Sorry!", "This device is not compatible with TFOD");
+                     }
+                     /** Activate Tensor Flow Object Detection. */
                      if (tfod != null) {
-                         // getUpdatedRecognitions() will return null if no new information is available since
-                         // the last time that call was made.
-                         List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
-                         if (updatedRecognitions != null) {
-                             telemetry.addData("# Object Detected", updatedRecognitions.size());
-                             telemetry.update();
-
-                             if (updatedRecognitions.size() == 3) {
-                                 int goldMineralX = -1;
-                                 int silverMineral1X = -1;
-                                 int silverMineral2X = -1;
-                                 for (Recognition recognition : updatedRecognitions) {
-                                     if (recognition.getLabel().equals(LABEL_GOLD_MINERAL)) {
-                                         goldMineralX = (int) recognition.getLeft();
-                                     } else if (silverMineral1X == -1) {
-                                         silverMineral1X = (int) recognition.getLeft();
-                                     } else {
-                                         silverMineral2X = (int) recognition.getLeft();
-                                     }
-                                 }
-                                 if (goldMineralX != -1 && silverMineral1X != -1 && silverMineral2X != -1 && !kicked) {
-                                     if (goldMineralX < silverMineral1X && goldMineralX < silverMineral2X) {
-                                         kicked = true;
-                                         telemetry.addData("Gold Mineral Position", "Left");
-                                         telemetry.update();
-
-                                         encoderDrive(DRIVE_SPEED, 2, 2, 5);
-                                         turnToPosition(.5, 25);
-                                         encoderDrive(DRIVE_SPEED, 13, 13, 7);
-
-                                     } else if (goldMineralX > silverMineral1X && goldMineralX > silverMineral2X) {
-                                         kicked = true;
-                                         telemetry.addData("Gold Mineral Position", "Right");
-                                         telemetry.update();
-
-                                         encoderDrive(DRIVE_SPEED, 2, 2, 7);
-                                         turnToPosition(.5, -25);
-                                         encoderDrive(DRIVE_SPEED, 13, 13, 7);
-                                     } else {
-                                         kicked = true;
-                                         encoderDrive(DRIVE_SPEED, 2, 2, 5);
-                                         telemetry.addData("Gold Mineral Position", "Center");
-                                         telemetry.update();
-
-                                         encoderDrive(DRIVE_SPEED, 10, 10, 7);
-                                     }
-                                 }
-                             } else if (runtime.seconds() >= 15 && !kicked){
-                                 //It has been 20 seconds and we cannot identify the gold
-                                 //Assume middle
-                                 kicked = true;
-                                 encoderDrive(DRIVE_SPEED, 2, 2, 5);
-                                 telemetry.addData("Gold Mineral Position", "Unknown");
+                         tfod.activate();
+                     }
+                     while (opModeIsActive()) {
+                         if (tfod != null) {
+                             // getUpdatedRecognitions() will return null if no new information is available since
+                             // the last time that call was made.
+                             List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+                             if (updatedRecognitions != null) {
+                                 telemetry.addData("# Object Detected", updatedRecognitions.size());
                                  telemetry.update();
 
-                                 encoderDrive(DRIVE_SPEED, 10, 10, 5);
-                                 encoderDrive(.5,5,5,5);
+                                 if (updatedRecognitions.size() == JEWEL_AMOUNT) {
+                                     int goldMineralX = -1;
+                                     int silverMineral1X = -1;
+                                     int silverMineral2X = -1;
+                                     for (Recognition recognition : updatedRecognitions) {
+                                         if (recognition.getLabel().equals(LABEL_GOLD_MINERAL)) {
+                                             goldMineralX = (int) recognition.getLeft();
+                                         } else if (silverMineral1X == -1) {
+                                             silverMineral1X = (int) recognition.getLeft();
+                                         } else {
+                                             silverMineral2X = (int) recognition.getLeft();
+                                         }
+                                     }
+                                     if (goldMineralX != -1 && silverMineral1X != -1 && silverMineral2X != -1 && !hit) {
+                                         if (goldMineralX < silverMineral1X && goldMineralX < silverMineral2X) {
+                                             hit = true;
+                                             telemetry.addData("Gold Mineral Position", "Left");
+                                             telemetry.update();
 
+                                             encoderDrive(DRIVE_SPEED, READ_FORWARD, READ_FORWARD, TIME_OUT);
+                                             turnToPosition(STANDARD_POWER, TURNING_AMOUNT);
+                                             encoderDrive(DRIVE_SPEED, FORWARD_SIDE, FORWARD_SIDE, TIME_OUT);
+
+                                         } else if (goldMineralX > silverMineral1X && goldMineralX > silverMineral2X) {
+                                             hit = true;
+                                             telemetry.addData("Gold Mineral Position", "Right");
+                                             telemetry.update();
+
+                                             encoderDrive(DRIVE_SPEED, READ_FORWARD, READ_FORWARD, TIME_OUT);
+                                             turnToPosition(STANDARD_POWER, -TURNING_AMOUNT);
+                                             encoderDrive(DRIVE_SPEED, FORWARD_SIDE, FORWARD_SIDE, TIME_OUT);
+                                         } else {
+                                             hit = true;
+                                             encoderDrive(DRIVE_SPEED, READ_FORWARD, READ_FORWARD, TIME_OUT);
+                                             telemetry.addData("Gold Mineral Position", "Center");
+                                             telemetry.update();
+
+                                             encoderDrive(DRIVE_SPEED, FORWARD_MIDDLE, FORWARD_MIDDLE, TIME_OUT);
+                                         }
+                                         break;
+
+                                     }
+                                 } else if (runtime.seconds() >= MAX_TIME && !hit){
+                                     //It has been 20 seconds and we cannot identify the gold
+                                     //Assume middle
+                                     hit = true;
+                                     encoderDrive(DRIVE_SPEED, READ_FORWARD, READ_FORWARD, TIME_OUT);
+                                     telemetry.addData("Gold Mineral Position", "Unknown");
+                                     telemetry.update();
+                                     encoderDrive(DRIVE_SPEED,FORWARD_MIDDLE,FORWARD_MIDDLE,TIME_OUT);
+                                     break;
+
+                                 }
                              }
                          }
                      }
-                 }
-                 if (tfod != null) {
-                     tfod.shutdown();
+                     if (tfod != null) {
+                         tfod.shutdown();
+                     }
                  }
              }
          }

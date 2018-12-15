@@ -101,6 +101,7 @@ public class DeliverMarker extends LinearOpMode {
     boolean latched = false;
     boolean kicked = false;
     int goldPosition;
+    int state = 1;
 
     /*
      * IMPORTANT: You need to obtain your own license key to use Vuforia. The string below with which
@@ -185,130 +186,143 @@ public class DeliverMarker extends LinearOpMode {
 
 
         while (opModeIsActive()) {
-            if (!landed && !latched) {
-                runtime.reset();
-                linearServo.scaleRange(0.0, 1.0);
-                linearMotor.setTargetPosition(-7122);
-                linearMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                linearMotor.setPower(0.5);
-                if (linearMotor.getCurrentPosition() < -7100){
-                    landed = true;
-                    telemetry.addData("Status:", "Landed");
+            switch(state){
+                case 1:{
+                    runtime.reset();
+                    linearServo.scaleRange(0.0, 1.0);
+                    linearMotor.setTargetPosition(-7122);
+                    linearMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    linearMotor.setPower(0.5);
+                    if (linearMotor.getCurrentPosition() < -7100){
+                        landed = true;
+                        telemetry.addData("Status:", "Landed");
+                        telemetry.update();
+                        state++;
+                        break;
+                    }
+                    break;
+
+                }
+                case 2:{
+                    linearServo.setPosition(1);
+                    collectionServo.setPower(1);
+                    sleep(1250);
+                    collectionServo.setPower(0);
+                    latched = true;
+                    telemetry.addData("Status:", "Latched");
                     telemetry.update();
+                    state++;
+                    break;
+
                 }
-            }
-            if (landed && !latched){
-                linearServo.setPosition(1);
-                collectionServo.setPower(1);
-                sleep(1250);
-                collectionServo.setPower(0);
-                latched = true;
-                telemetry.addData("Status:", "Latched");
-                telemetry.update();
-            }
-            if (landed && latched) {
-                if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
-                    initTfod();
-                } else {
-                    telemetry.addData("Sorry!", "This device is not compatible with TFOD");
-                }
-                /** Activate Tensor Flow Object Detection. */
-                if (tfod != null) {
-                    tfod.activate();
-                }
-                while (opModeIsActive()) {
+                case 3:{
+                    if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
+                        initTfod();
+                    } else {
+                        telemetry.addData("Sorry!", "This device is not compatible with TFOD");
+                    }
+                    /** Activate Tensor Flow Object Detection. */
                     if (tfod != null) {
-                        // getUpdatedRecognitions() will return null if no new information is available since
-                        // the last time that call was made.
-                        List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
-                        if (updatedRecognitions != null) {
-                            telemetry.addData("# Object Detected", updatedRecognitions.size());
-                            if (updatedRecognitions.size() == 3) {
-                                int goldMineralX = -1;
-                                int silverMineral1X = -1;
-                                int silverMineral2X = -1;
-                                for (Recognition recognition : updatedRecognitions) {
-                                    if (recognition.getLabel().equals(LABEL_GOLD_MINERAL)) {
-                                        goldMineralX = (int) recognition.getLeft();
-                                    } else if (silverMineral1X == -1) {
-                                        silverMineral1X = (int) recognition.getLeft();
-                                    } else {
-                                        silverMineral2X = (int) recognition.getLeft();
+                        tfod.activate();
+                    }
+                    while (opModeIsActive()) {
+                        if (tfod != null) {
+                            // getUpdatedRecognitions() will return null if no new information is available since
+                            // the last time that call was made.
+                            List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+                            if (updatedRecognitions != null) {
+                                telemetry.addData("# Object Detected", updatedRecognitions.size());
+                                if (updatedRecognitions.size() == 3) {
+                                    int goldMineralX = -1;
+                                    int silverMineral1X = -1;
+                                    int silverMineral2X = -1;
+                                    for (Recognition recognition : updatedRecognitions) {
+                                        if (recognition.getLabel().equals(LABEL_GOLD_MINERAL)) {
+                                            goldMineralX = (int) recognition.getLeft();
+                                        } else if (silverMineral1X == -1) {
+                                            silverMineral1X = (int) recognition.getLeft();
+                                        } else {
+                                            silverMineral2X = (int) recognition.getLeft();
+                                        }
                                     }
-                                }
-                                if (goldMineralX != -1 && silverMineral1X != -1 && silverMineral2X != -1 && !kicked) {
-                                    if (goldMineralX < silverMineral1X && goldMineralX < silverMineral2X) {
-                                        kicked = true;
-                                        telemetry.addData("Gold Mineral Position", "Left");
-                                        encoderDrive(DRIVE_SPEED, 2, 2, 5);
-                                        turnToPosition(.5, 25);
-                                        encoderDrive(DRIVE_SPEED, 12, 12, 5);
-                                        turnToPosition(.5, -25);
-                                        goldPosition = 0;
+                                    if (goldMineralX != -1 && silverMineral1X != -1 && silverMineral2X != -1 && !kicked) {
+                                        if (goldMineralX < silverMineral1X && goldMineralX < silverMineral2X) {
+                                            kicked = true;
+                                            telemetry.addData("Gold Mineral Position", "Left");
+                                            encoderDrive(DRIVE_SPEED, 2, 2, 5);
+                                            turnToPosition(.5, 25);
+                                            encoderDrive(DRIVE_SPEED, 12, 12, 5);
+                                            turnToPosition(.5, -25);
+                                            goldPosition = 0;
 
-                                    } else if (goldMineralX > silverMineral1X && goldMineralX > silverMineral2X) {
-                                        kicked = true;
-                                        telemetry.addData("Gold Mineral Position", "Right");
-                                        encoderDrive(DRIVE_SPEED, 2, 2, 5);
-                                        turnToPosition(.5, -25);
-                                        encoderDrive(DRIVE_SPEED, 12, 12, 5);
-                                        turnToPosition(.5, 25);
-                                        goldPosition = 2;
+                                        } else if (goldMineralX > silverMineral1X && goldMineralX > silverMineral2X) {
+                                            kicked = true;
+                                            telemetry.addData("Gold Mineral Position", "Right");
+                                            encoderDrive(DRIVE_SPEED, 2, 2, 5);
+                                            turnToPosition(.5, -25);
+                                            encoderDrive(DRIVE_SPEED, 12, 12, 5);
+                                            turnToPosition(.5, 25);
+                                            goldPosition = 2;
 
-                                    } else {
-                                        kicked = true;
-                                        encoderDrive(DRIVE_SPEED, 2, 2, 5);
-                                        telemetry.addData("Gold Mineral Position", "Center");
-                                        encoderDrive(DRIVE_SPEED, 10, 10, 5);
-                                        goldPosition = 1;
+                                        } else {
+                                            kicked = true;
+                                            encoderDrive(DRIVE_SPEED, 2, 2, 5);
+                                            telemetry.addData("Gold Mineral Position", "Center");
+                                            encoderDrive(DRIVE_SPEED, 10, 10, 5);
+                                            goldPosition = 1;
+                                        }
+                                        encoderDrive(.5,5,5,5);
+
+                                        marker.setPower(0.5);
+                                        sleep(1700);
+                                        marker.setPower(0);
+                                        sleep(1300);
+                                        marker.setPower(-0.5);
+                                        tape.setPower(1);
+                                        if (goldPosition != 0) {
+                                            turnToPosition(0.5, 33);
+                                        } else{
+                                            turnToPosition(0.5,-35);
+                                        }
+                                        sleep(1700);
+                                        marker.setPower(0);
+                                        sleep(8000);
+                                        tape.setPower(0);
+                                        break;
+
                                     }
+                                } else if (runtime.seconds() >= 10 && !kicked){
+                                    //It has been 20 seconds and we cannot identify the gold
+                                    //Assume middle
+                                    kicked = true;
+                                    encoderDrive(DRIVE_SPEED, 2, 2, 5);
+                                    telemetry.addData("Gold Mineral Position", "Unknown");
+                                    encoderDrive(DRIVE_SPEED, 10, 10, 5);
                                     encoderDrive(.5,5,5,5);
-
                                     marker.setPower(0.5);
                                     sleep(1700);
                                     marker.setPower(0);
                                     sleep(1300);
                                     marker.setPower(-0.5);
                                     tape.setPower(1);
-                                    if (goldPosition != 0) {
-                                        turnToPosition(0.5, 33);
-                                    } else{
-                                        turnToPosition(0.5,-35);
-                                    }
+                                    telemetry.addData("Turn","started");
+                                    telemetry.update();
+                                    turnToPosition(0.5,45);
+                                    telemetry.addData("Turn","ended");
+                                    telemetry.update();
                                     sleep(1700);
                                     marker.setPower(0);
-                                    sleep(8000);
-                                    tape.setPower(0);
+                                    sleep(5000);
+                                    break;
+
                                 }
-                            } else if (runtime.seconds() >= 10 && !kicked){
-                                //It has been 20 seconds and we cannot identify the gold
-                                //Assume middle
-                                kicked = true;
-                                encoderDrive(DRIVE_SPEED, 2, 2, 5);
-                                telemetry.addData("Gold Mineral Position", "Unknown");
-                                encoderDrive(DRIVE_SPEED, 10, 10, 5);
-                                encoderDrive(.5,5,5,5);
-                                marker.setPower(0.5);
-                                sleep(1700);
-                                marker.setPower(0);
-                                sleep(1300);
-                                marker.setPower(-0.5);
-                                tape.setPower(1);
-                                telemetry.addData("Turn","started");
                                 telemetry.update();
-                                turnToPosition(0.5,45);
-                                telemetry.addData("Turn","ended");
-                                telemetry.update();
-                                sleep(1700);
-                                marker.setPower(0);
-                                sleep(5000);
                             }
-                            telemetry.update();
                         }
                     }
-                }
-                if (tfod != null) {
-                    tfod.shutdown();
+                    if (tfod != null) {
+                        tfod.shutdown();
+                    }
                 }
             }
         }
