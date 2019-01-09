@@ -106,7 +106,8 @@ import static org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocaliz
  */
 @Autonomous(name = "Vuforia Proof", group = "4924")
 
-public class VuforiaProofOfConcept extends LinearOpMode {
+public class
+VuforiaProofOfConcept extends LinearOpMode {
     private static final String TFOD_MODEL_ASSET = "RoverRuckus.tflite";
     private static final String LABEL_GOLD_MINERAL = "Gold Mineral";
     private static final String LABEL_SILVER_MINERAL = "Silver Mineral";

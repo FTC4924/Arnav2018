@@ -63,7 +63,7 @@ import java.util.List;
  * IMPORTANT: In order to use this OpMode, you need to obtain your own Vuforia license key as
  * is explained below.
  */
-@Autonomous(name = "Marker Starting with 11112", group = "4924")
+@Autonomous(name = "Marker Starting states", group = "4924")
 
 public class DeliverMarkerSpecial extends LinearOpMode {
     private static final String TFOD_MODEL_ASSET = "RoverRuckus.tflite";
@@ -77,7 +77,7 @@ public class DeliverMarkerSpecial extends LinearOpMode {
     DcMotor linearMotor;
     TouchSensor limitSwitch;
     Servo linearServo;
-    CRServo collectionServo;
+   // CRServo collectionServo;
     CRServo marker;
     CRServo tape;
 
@@ -98,6 +98,8 @@ public class DeliverMarkerSpecial extends LinearOpMode {
     boolean landed = false;
     boolean latched = false;
     boolean kicked = false;
+    int direction = 0;
+    boolean detected = false;
     int goldPosition;
 
     /*
@@ -132,7 +134,7 @@ public class DeliverMarkerSpecial extends LinearOpMode {
 
         limitSwitch = hardwareMap.get(TouchSensor.class, "limitSwitch");
         linearServo = hardwareMap.get(Servo.class, "linearServo");
-        collectionServo = hardwareMap.get(CRServo.class, "collectionServo");
+       //collectionServo = hardwareMap.get(CRServo.class, "collectionServo");
         marker = hardwareMap.get(CRServo.class, "markerServo");
         tape = hardwareMap.get(CRServo.class, "tapeMeasure");
 
@@ -185,36 +187,17 @@ public class DeliverMarkerSpecial extends LinearOpMode {
         while (opModeIsActive()) {
             if (!landed && !latched) {
                 runtime.reset();
-                linearServo.scaleRange(0.0, 1.0);
-                linearMotor.setTargetPosition(-7122);
-                linearMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                linearMotor.setPower(0.5);
-                if (linearMotor.getCurrentPosition() < -7100){
-                    landed = true;
-                    telemetry.addData("Status:", "Landed");
-                    telemetry.update();
-                }
-            }
-            if (landed && !latched){
-                linearServo.setPosition(1);
-                collectionServo.setPower(1);
-                sleep(1250);
-                collectionServo.setPower(0);
-                latched = true;
-                telemetry.addData("Status:", "Latched");
-                telemetry.update();
-            }
-            if (landed && latched) {
                 if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
                     initTfod();
                 } else {
                     telemetry.addData("Sorry!", "This device is not compatible with TFOD");
                 }
                 /** Activate Tensor Flow Object Detection. */
+                /** Activate Tensor Flow Object Detection. */
                 if (tfod != null) {
                     tfod.activate();
                 }
-                while (opModeIsActive()) {
+                while (opModeIsActive()&& !detected) {
                     if (tfod != null) {
                         // getUpdatedRecognitions() will return null if no new information is available since
                         // the last time that call was made.
@@ -239,6 +222,58 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                                     inches then turn to face depot and drop marker then face crater on other color side
                                     then drive forward and set power to tape.*/
                                     if (goldMineralX < silverMineral1X && goldMineralX < silverMineral2X) {
+                                       direction = -1;
+                                       detected = true;
+
+                                    } else if (goldMineralX > silverMineral1X && goldMineralX > silverMineral2X) {
+                                       /*If gold is on the right then go forward 2 inches then turn right and go forward 12
+                                    inches then turn to face depot and go 12 inches and then drop marker then face crater on
+                                    other color side then drive forward and set power to tape.*/
+
+                                        direction = 1;
+                                        detected = true;
+                                    } else {
+                                        /*If gold is in the center then go forward 12 inches and drop marker then go backwards
+                                        and face crater on other color side then drive forward and set power to tape.*/
+                                        direction = 0;
+                                        detected = true;
+                                    }
+
+                                }
+                            } else if (runtime.seconds() >= 5 && !kicked){
+                                //It has been 20 seconds and we cannot identify the gold
+                                //Assume middle
+                                direction = 0;
+                                detected = true;
+                            }
+                            telemetry.update();
+                        }
+                    }
+                }
+                if (tfod != null) {
+                    tfod.shutdown();
+                }
+                linearServo.scaleRange(0.0, 1.0);
+                linearMotor.setTargetPosition(-7122);
+                linearMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                linearMotor.setPower(0.5);
+                if (linearMotor.getCurrentPosition() < -7100){
+                    landed = true;
+                    telemetry.addData("Status:", "Landed");
+                    telemetry.update();
+                }
+            }
+            if (landed && !latched){
+                linearServo.setPosition(1);
+               // collectionServo.setPower(1);
+                sleep(2000);
+                //collectionServo.setPower(0);
+                latched = true;
+                telemetry.addData("Status:", "Latched");
+                telemetry.update();
+            }
+            if (landed && latched) {
+                                    if (direction==-1) {
                                         kicked = true;
                                         telemetry.addData("Gold Mineral Position", "Left");
                                         encoderDrive(DRIVE_SPEED, 2, 2, 5);
@@ -259,7 +294,7 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                                         sleep(8000);
                                         tape.setPower(0);
 
-                                    } else if (goldMineralX > silverMineral1X && goldMineralX > silverMineral2X) {
+                                    } else if (direction==1) {
                                        /*If gold is on the right then go forward 2 inches then turn right and go forward 12
                                     inches then turn to face depot and go 12 inches and then drop marker then face crater on
                                     other color side then drive forward and set power to tape.*/
@@ -304,42 +339,11 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                                         marker.setPower(0);
                                         sleep(5000);
                                     }
-
-                                }
-                            } else if (runtime.seconds() >= 5 && !kicked){
-                                //It has been 20 seconds and we cannot identify the gold
-                                //Assume middle
-                                kicked = true;
-                                encoderDrive(DRIVE_SPEED, 2, 2, 5);
-                                telemetry.addData("Gold Mineral Position", "Unknown");
-                                encoderDrive(DRIVE_SPEED, 10, 10, 5);
-                                encoderDrive(.5,5,5,5);
-                                marker.setPower(0.5);
-                                sleep(1700);
-                                marker.setPower(0);
-                                sleep(1300);
-                                marker.setPower(-0.5);
-                                encoderDrive(DRIVE_SPEED, -12, -12, 5);
-                                telemetry.addData("Turn","started");
-                                telemetry.update();
-                                turnToPosition(0.5,-70);
-                                telemetry.addData("Turn","ended");
-                                telemetry.update();
-                                tape.setPower(1);
-                                encoderDrive(DRIVE_SPEED, -5, -5, 5);
-                                sleep( 1700);
-                                marker.setPower(0);
-                                sleep(5000);
                             }
                             telemetry.update();
                         }
-                    }
-                }
-                if (tfod != null) {
-                    tfod.shutdown();
-                }
-            }
-        }
+
+
     }
 
     /**

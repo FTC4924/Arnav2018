@@ -30,8 +30,11 @@ public class StateRover extends OpMode {
     private CRServo marker = null;
     private CRServo tapeM = null;
     double clawClosePosition = 0.5;
-    private TouchSensor limitSwitch = null;
     private TouchSensor limitSwitch2 = null;
+    private TouchSensor limitSwitch = null;
+    private TouchSensor rotationSwitch = null;
+    private Servo tapeBump = null;
+    private Servo deliveryServo = null;
     /*
 
      * Code to run ONCE when the driver hits INIT
@@ -53,6 +56,7 @@ public class StateRover extends OpMode {
         rotation = hardwareMap.get(DcMotor.class, "rotation");
         limitSwitch = hardwareMap.get(TouchSensor.class, "limitSwitch");
         limitSwitch2 = hardwareMap.get(TouchSensor.class, "limitSwitch2");
+        rotationSwitch = hardwareMap.get(TouchSensor.class, "rotationSwitch");
         linearMotor = hardwareMap.get(DcMotor.class, "linearMotor");
         collectionServo = hardwareMap.get(CRServo.class, "collectionNew");
         linearServo = hardwareMap.get(Servo.class, "linearServo");
@@ -60,6 +64,9 @@ public class StateRover extends OpMode {
         tape = hardwareMap.get(CRServo.class, "tapeMeasure");
         tapeM = hardwareMap.get(CRServo.class, "tapeServo");
         marker = hardwareMap.get(CRServo.class,"markerServo");
+        tapeM = hardwareMap.get(CRServo.class, "tapeServo");
+        tapeBump = hardwareMap.get(Servo.class, "tapeBump");
+        deliveryServo = hardwareMap.get(Servo.class, "deliveryServo");
         //rightArm = hardwareMap.get(Servo.class, "rightArm");
 
         // Most robots need the motor on one side to be reversed to drive forward
@@ -132,12 +139,9 @@ public class StateRover extends OpMode {
         boolean collectionPowerDown = gamepad2.a;
         //collectionPowerDown is dependent on whether or not we want the collection deliver (Push downwards)
 
-        double leadScrew =  0.5 * (gamepad2.left_stick_y);
 
         double tapeMeasure = -0.5 * (gamepad2.right_stick_y);
 
-        boolean rotateUp = gamepad2.y;
-        boolean rotateDown = gamepad2.x;
 
         boolean halfSpeed = gamepad1.left_bumper;
 
@@ -150,13 +154,22 @@ public class StateRover extends OpMode {
             extend = -0.5;
         }
 
-        if (gamepad2.dpad_up) {
+        if (gamepad2.y) {
             //if we want it to collect, we set collectionPower to 1
-            leadScrew = 0.5;
+            linearMotor.setPower(0.5);
 
-        } else if (gamepad2.dpad_down) {
+        } else if (gamepad2.x) {
             //if we want the collection to deliver/spin backswards, we set collectionPower to -1
-            leadScrew = -0.5;
+            linearMotor.setPower(-0.5);
+        } else {
+            linearMotor.setPower(0);
+        }
+
+        if (gamepad2.left_trigger>0.01) {
+            tapeBump.setPosition(.45);
+
+        } else if (gamepad2.right_trigger>0.01) {
+            tapeBump.setPosition(0);
         }
 
         if (collectionPowerUp) {
@@ -194,18 +207,21 @@ public class StateRover extends OpMode {
             marker.setPower(0);
         }
 
-        if (rotateUp ) {
-            //if we want it to c    ollect, we set collectionPower to 1
-            rotationPower =  -1;
-        } else if (rotateDown) {
+        if (gamepad2.left_stick_y<-0.1) {
+            //if we want it to collect, we set collectionPower to 1
+            rotationPower =  gamepad2.left_stick_y;
+        } else if (gamepad2.left_stick_y>0.1) {
             //if we want the collection to deliver/spin backwards, we set collectionPower to -1
-            rotationPower = 1;
+            rotationPower = gamepad2.left_stick_y;
+        } else{
+            rotationPower = 0;
         }
 
-        if (gamepad1.x){
-            rightArm.setPosition(0.3);
-        } else if(gamepad1.y){
-            rightArm.setPosition(0.7);
+        if (gamepad1.x) {
+            deliveryServo.setPosition(.45);
+
+        } else if (gamepad1.y) {
+            deliveryServo.setPosition(0);
         }
 
 
@@ -230,7 +246,6 @@ public class StateRover extends OpMode {
         frontRightMotor.setPower(frontRightPower);
         backLeftMotor.setPower(backLeftPower);
         backRightMotor.setPower(backRightPower);
-        linearMotor.setPower(leadScrew);
         rotation.setPower(rotationPower);
         extension.setPower(extend);
         collectionServo.setPower(collectionPower);
