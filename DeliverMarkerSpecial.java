@@ -78,8 +78,9 @@ public class DeliverMarkerSpecial extends LinearOpMode {
     TouchSensor limitSwitch;
     Servo linearServo;
    // CRServo collectionServo;
-    CRServo marker;
+    Servo marker;
     CRServo tape;
+    CRServo tapeM;
 
 
     static final double     COUNTS_PER_MOTOR_REV    = 1425.2 ;
@@ -135,9 +136,9 @@ public class DeliverMarkerSpecial extends LinearOpMode {
         limitSwitch = hardwareMap.get(TouchSensor.class, "limitSwitch");
         linearServo = hardwareMap.get(Servo.class, "linearServo");
        //collectionServo = hardwareMap.get(CRServo.class, "collectionServo");
-        marker = hardwareMap.get(CRServo.class, "markerServo");
+        marker = hardwareMap.get(Servo.class, "markerServo");
         tape = hardwareMap.get(CRServo.class, "tapeMeasure");
-
+        tapeM = hardwareMap.get(CRServo.class, "tapeServo");
         frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
         frontRight = hardwareMap.get(DcMotor.class, "frontRight");
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");
@@ -281,16 +282,13 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                                         encoderDrive(DRIVE_SPEED, 14, 14, 5);
                                         turnToPosition(.5, -45);
                                         encoderDrive(.5,5,5,5);
-                                        marker.setPower(0.5);
-                                        sleep(1700);
-                                        marker.setPower(0);
+                                        marker.setPosition(0);
                                         sleep(1300);
-                                        marker.setPower(-0.5);
+                                        marker.setPosition(75);
                                         tape.setPower(1);
+                                        tapeM.setPower(1);
                                         turnToPosition(.5, -45);
                                         encoderDrive(DRIVE_SPEED, -10, -10, 5);
-                                        sleep(1700);
-                                        marker.setPower(0);
                                         sleep(8000);
                                         tape.setPower(0);
 
@@ -304,17 +302,15 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                                         turnToPosition(.5, -25);
                                         encoderDrive(DRIVE_SPEED, 12, 12, 5);
                                         turnToPosition(.5, 25);
-                                        encoderDrive(.5,12,12,5);
-                                        marker.setPower(0.5);
-                                        sleep(1700);
-                                        marker.setPower(0);
+                                        encoderDrive(.5,9,9,5);
+                                        marker.setPosition(0);
                                         sleep(1300);
-                                        marker.setPower(-0.5);
+                                        marker.setPosition(75);
+                                        encoderDrive(DRIVE_SPEED, 3, 3, 5);
                                         tape.setPower(1);
+                                        tapeM.setPower(1);
                                         turnToPosition(.5, -45);
                                         encoderDrive(DRIVE_SPEED, -10, -10, 5);
-                                        sleep(1700);
-                                        marker.setPower(0);
                                         sleep(8000);
                                         tape.setPower(0);
 
@@ -326,17 +322,14 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                                         telemetry.addData("Gold Mineral Position", "Center");
                                         encoderDrive(DRIVE_SPEED, 10, 10, 5);
                                         encoderDrive(.5,5,5,5);
-                                        marker.setPower(0.5);
-                                        sleep(1700);
-                                        marker.setPower(0);
+                                        marker.setPosition(0);
                                         sleep(1300);
-                                        marker.setPower(-0.5);
+                                        marker.setPosition(75);
                                         encoderDrive(DRIVE_SPEED, -12, -12, 5);
                                         turnToPosition(0.5,-70);
                                         tape.setPower(1);
+                                        tapeM.setPower(1);
                                         encoderDrive(DRIVE_SPEED, -5, -5, 5);
-                                        sleep( 1700);
-                                        marker.setPower(0);
                                         sleep(5000);
                                     }
                             }

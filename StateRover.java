@@ -23,18 +23,18 @@ public class StateRover extends OpMode {
     private DcMotor rotation = null;
     private DcMotor linearMotor = null;
     private Servo linearServo = null;
-    private CRServo collectionServo = null;
+    private DcMotor collectionServo = null;
     private CRServo armServo = null;
     private CRServo tape = null;
     private Servo rightArm = null;
-    private CRServo marker = null;
+    private Servo marker = null;
     private CRServo tapeM = null;
     double clawClosePosition = 0.5;
     private TouchSensor limitSwitch2 = null;
     private TouchSensor limitSwitch = null;
     private TouchSensor rotationSwitch = null;
     private Servo tapeBump = null;
-    private Servo deliveryServo = null;
+    private Servo mineralServo = null;
     /*
 
      * Code to run ONCE when the driver hits INIT
@@ -58,15 +58,15 @@ public class StateRover extends OpMode {
         limitSwitch2 = hardwareMap.get(TouchSensor.class, "limitSwitch2");
         rotationSwitch = hardwareMap.get(TouchSensor.class, "rotationSwitch");
         linearMotor = hardwareMap.get(DcMotor.class, "linearMotor");
-        collectionServo = hardwareMap.get(CRServo.class, "collectionNew");
+        collectionServo = hardwareMap.get(DcMotor.class, "collectionNew");
         linearServo = hardwareMap.get(Servo.class, "linearServo");
         armServo = hardwareMap.get(CRServo.class, "armServo");
         tape = hardwareMap.get(CRServo.class, "tapeMeasure");
         tapeM = hardwareMap.get(CRServo.class, "tapeServo");
-        marker = hardwareMap.get(CRServo.class,"markerServo");
+        marker = hardwareMap.get(Servo.class,"markerServo");
         tapeM = hardwareMap.get(CRServo.class, "tapeServo");
         tapeBump = hardwareMap.get(Servo.class, "tapeBump");
-        deliveryServo = hardwareMap.get(Servo.class, "deliveryServo");
+        mineralServo = hardwareMap.get(Servo.class, "mineralServo");
         //rightArm = hardwareMap.get(Servo.class, "rightArm");
 
         // Most robots need the motor on one side to be reversed to drive forward
@@ -102,6 +102,10 @@ public class StateRover extends OpMode {
         runtime.reset();
     }
 
+    boolean bumperPressedHistory = false;
+    boolean bumperClicked = false;
+    boolean leftBumperPressedHistory = false;
+    boolean leftBumperClicked = false;
     /*
      * Code to run REPEATEDLY after the driver hits PLAY but before they hit STOP
      */
@@ -118,6 +122,15 @@ public class StateRover extends OpMode {
         boolean elbowBent;
         double position = 0.0;
         double clawPosition = 0.0;
+        if (bumperPressedHistory == false && gamepad1.right_bumper == true){
+            bumperClicked = !bumperClicked;
+        }
+        bumperPressedHistory = gamepad1.right_bumper;
+
+        if (leftBumperPressedHistory == false && gamepad1.left_bumper == true){
+            leftBumperClicked = !leftBumperClicked;
+        }
+        leftBumperPressedHistory = gamepad1.left_bumper;
 
         //we set what to do when the motor is not given power, which is to brake completely, instead of coasting
         frontLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -134,25 +147,29 @@ public class StateRover extends OpMode {
         //turnRight is how much we want to turn right
         double turnLeft = gamepad1.left_trigger;
         //turnLeft is how much we want to turn left
-        boolean collectionPowerUp = gamepad2.b;
+        boolean collectionPowerUp = gamepad2.left_trigger>0.01;
         //collectionPowerUp is dependent on whether or not we want the collection to collect
-        boolean collectionPowerDown = gamepad2.a;
+        boolean collectionPowerDown = gamepad2.right_trigger>0.01;
         //collectionPowerDown is dependent on whether or not we want the collection deliver (Push downwards)
 
 
         double tapeMeasure = -0.5 * (gamepad2.right_stick_y);
 
 
-        boolean halfSpeed = gamepad1.left_bumper;
+        boolean halfSpeed = leftBumperClicked == true;
 
         if (gamepad1.dpad_left && !limitSwitch2.isPressed()) {
             //if we want it to collect, we set collectionPower to 1
-            extend = 0.5;
+            extend = 1;
 
-        } else if (gamepad1.dpad_right && !limitSwitch.isPressed()) {
+        } else if (gamepad1.dpad_right && !limitSwitch.isPressed() || bumperClicked == true) {
             //if we want the collection to deliver/spin backswards, we set collectionPower to -1
-            extend = -0.5;
+            extend = -1;
+            if (limitSwitch.isPressed()) {
+                extend = 0;
+            }
         }
+
 
         if (gamepad2.y) {
             //if we want it to collect, we set collectionPower to 1
@@ -165,19 +182,19 @@ public class StateRover extends OpMode {
             linearMotor.setPower(0);
         }
 
-        if (gamepad2.left_trigger>0.01) {
+        if (gamepad2.a) {
             tapeBump.setPosition(.45);
 
-        } else if (gamepad2.right_trigger>0.01) {
+        } else if (gamepad2.b) {
             tapeBump.setPosition(0);
         }
 
         if (collectionPowerUp) {
             //if we want it to collect, we set collectionPower to 1
-            collectionPower = -1;
+            collectionPower = -gamepad2.left_trigger;
         } else if (collectionPowerDown) {
             //if we want the collection to deliver/spin backswards, we set collectionPower to -1
-            collectionPower = 1;
+            collectionPower = gamepad2.right_trigger;
         }
 
         if (gamepad2.left_bumper) {
@@ -200,28 +217,26 @@ public class StateRover extends OpMode {
         }
 
         if (gamepad1.dpad_up){
-            marker.setPower(-0.5);
-        } else if (gamepad1.dpad_down){
-            marker.setPower(0.5);
-        } else{
-            marker.setPower(0);
+            marker.setPosition(.65);
+        } else if (gamepad1.dpad_down) {
+            marker.setPosition(0);
         }
 
         if (gamepad2.left_stick_y<-0.1) {
             //if we want it to collect, we set collectionPower to 1
-            rotationPower =  gamepad2.left_stick_y;
-        } else if (gamepad2.left_stick_y>0.1) {
+            rotationPower =  gamepad2.left_stick_y*2;
+        } else if (gamepad2.left_stick_y>0.1 && !rotationSwitch.isPressed()) {
             //if we want the collection to deliver/spin backwards, we set collectionPower to -1
-            rotationPower = gamepad2.left_stick_y;
+            rotationPower = gamepad2.left_stick_y*2;
         } else{
             rotationPower = 0;
         }
 
-        if (gamepad1.x) {
-            deliveryServo.setPosition(.45);
+        if (gamepad1.y) {
+            mineralServo.setPosition(.45);
 
-        } else if (gamepad1.y) {
-            deliveryServo.setPosition(0);
+        } else if (gamepad1.x) {
+            mineralServo.setPosition(0);
         }
 
 
