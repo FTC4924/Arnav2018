@@ -77,7 +77,7 @@ public class DeliverMarkerSpecial extends LinearOpMode {
     DcMotor linearMotor;
     TouchSensor limitSwitch;
     Servo linearServo;
-   // CRServo collectionServo;
+    // CRServo collectionServo;
     Servo marker;
     CRServo tape;
     CRServo tapeM;
@@ -135,7 +135,7 @@ public class DeliverMarkerSpecial extends LinearOpMode {
 
         limitSwitch = hardwareMap.get(TouchSensor.class, "limitSwitch");
         linearServo = hardwareMap.get(Servo.class, "linearServo");
-       //collectionServo = hardwareMap.get(CRServo.class, "collectionServo");
+        //collectionServo = hardwareMap.get(CRServo.class, "collectionServo");
         marker = hardwareMap.get(Servo.class, "markerServo");
         tape = hardwareMap.get(CRServo.class, "tapeMeasure");
         tapeM = hardwareMap.get(CRServo.class, "tapeServo");
@@ -223,8 +223,8 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                                     inches then turn to face depot and drop marker then face crater on other color side
                                     then drive forward and set power to tape.*/
                                     if (goldMineralX < silverMineral1X && goldMineralX < silverMineral2X) {
-                                       direction = -1;
-                                       detected = true;
+                                        direction = -1;
+                                        detected = true;
 
                                     } else if (goldMineralX > silverMineral1X && goldMineralX > silverMineral2X) {
                                        /*If gold is on the right then go forward 2 inches then turn right and go forward 12
@@ -266,7 +266,7 @@ public class DeliverMarkerSpecial extends LinearOpMode {
             }
             if (landed && !latched){
                 linearServo.setPosition(1);
-               // collectionServo.setPower(1);
+                // collectionServo.setPower(1);
                 sleep(2000);
                 //collectionServo.setPower(0);
                 latched = true;
@@ -274,67 +274,75 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                 telemetry.update();
             }
             if (landed && latched) {
-                                    if (direction==-1) {
-                                        kicked = true;
-                                        telemetry.addData("Gold Mineral Position", "Left");
-                                        encoderDrive(DRIVE_SPEED, 2, 2, 5);
-                                        turnToPosition(.5, 25);
-                                        encoderDrive(DRIVE_SPEED, 14, 14, 5);
-                                        turnToPosition(.5, -45);
-                                        encoderDrive(.5,5,5,5);
-                                        marker.setPosition(0);
-                                        sleep(1300);
-                                        marker.setPosition(75);
-                                        tape.setPower(1);
-                                        tapeM.setPower(1);
-                                        turnToPosition(.5, -45);
-                                        encoderDrive(DRIVE_SPEED, -10, -10, 5);
-                                        sleep(8000);
-                                        tape.setPower(0);
+                if (direction==-1) {
+                    kicked = true;
+                    telemetry.addData("Gold Mineral Position", "Left");
+                    encoderDrive(DRIVE_SPEED, 2, 2, 5);
+                    turnToPosition(.5, 25);
+                    encoderDrive(DRIVE_SPEED, 14, 14, 5);
+                    turnToPosition(.5, -45);
+                    encoderDrive(.5,5,5,5);
+                    marker.setPosition(0);
+                    sleep(1300);
+                    marker.setPosition(75);
+                    tape.setPower(1);
+                    tapeM.setPower(1);
+                    turnToPosition(.5, -45);
+                    encoderDrive(DRIVE_SPEED, -10, -10, 5);
+                    sleep(5000);
+                    tape.setPower(0);
+                    tapeM.setPower(0);
+                    sleep(5000);
 
-                                    } else if (direction==1) {
+                } else if (direction==1) {
                                        /*If gold is on the right then go forward 2 inches then turn right and go forward 12
                                     inches then turn to face depot and go 12 inches and then drop marker then face crater on
                                     other color side then drive forward and set power to tape.*/
-                                        kicked = true;
-                                        telemetry.addData("Gold Mineral Position", "Right");
-                                        encoderDrive(DRIVE_SPEED, 2, 2, 5);
-                                        turnToPosition(.5, -25);
-                                        encoderDrive(DRIVE_SPEED, 12, 12, 5);
-                                        turnToPosition(.5, 25);
-                                        encoderDrive(.5,9,9,5);
-                                        marker.setPosition(0);
-                                        sleep(1300);
-                                        marker.setPosition(75);
-                                        encoderDrive(DRIVE_SPEED, 3, 3, 5);
-                                        tape.setPower(1);
-                                        tapeM.setPower(1);
-                                        turnToPosition(.5, -45);
-                                        encoderDrive(DRIVE_SPEED, -10, -10, 5);
-                                        sleep(8000);
-                                        tape.setPower(0);
+                    kicked = true;
+                    telemetry.addData("Gold Mineral Position", "Right");
+                    encoderDrive(DRIVE_SPEED, 2, 2, 5);
+                    turnToPosition(.5, -25);
+                    encoderDrive(DRIVE_SPEED, 12, 12, 5);
+                    turnToPosition(.5, 25);
+                    encoderDrive(.5,9,9,5);
+                    marker.setPosition(0);
+                    sleep(1300);
+                    marker.setPosition(75);
+                    encoderDrive(DRIVE_SPEED, 3, 3, 5);
+                    tape.setPower(1);
+                    tapeM.setPower(1);
+                    turnToPosition(.5, -45);
+                    encoderDrive(DRIVE_SPEED, -10 , -10, 5);
+                    sleep(8000);
+                    tape.setPower(0);
+                    tapeM.setPower(0);
+                    sleep(5000);
 
-                                    } else {
+                } else {
                                         /*If gold is in the center then go forward 12 inches and drop marker then go backwards
                                         and face crater on other color side then drive forward and set power to tape.*/
-                                        kicked = true;
-                                        encoderDrive(DRIVE_SPEED, 2, 2, 5);
-                                        telemetry.addData("Gold Mineral Position", "Center");
-                                        encoderDrive(DRIVE_SPEED, 10, 10, 5);
-                                        encoderDrive(.5,5,5,5);
-                                        marker.setPosition(0);
-                                        sleep(1300);
-                                        marker.setPosition(75);
-                                        encoderDrive(DRIVE_SPEED, -12, -12, 5);
-                                        turnToPosition(0.5,-70);
-                                        tape.setPower(1);
-                                        tapeM.setPower(1);
-                                        encoderDrive(DRIVE_SPEED, -5, -5, 5);
-                                        sleep(5000);
-                                    }
-                            }
-                            telemetry.update();
-                        }
+                    kicked = true;
+                    encoderDrive(DRIVE_SPEED, 2, 2, 5);
+                    telemetry.addData("Gold Mineral Position", "Center");
+                    encoderDrive(DRIVE_SPEED, 10, 10, 5);
+                    encoderDrive(.5,5,5,5);
+                    marker.setPosition(0);
+                    sleep(1300);
+                    marker.setPosition(75);
+                    encoderDrive(DRIVE_SPEED, -12, -12, 5);
+                    turnToPosition(0.5,-70);
+                    tape.setPower(1);
+                    tapeM.setPower(1);
+                    encoderDrive(DRIVE_SPEED, -5, -5, 5);
+                    sleep(8000);
+                    tape.setPower(0);
+                    tapeM.setPower(0);
+                    sleep(5000);
+
+                }
+            }
+            telemetry.update();
+        }
 
 
     }
