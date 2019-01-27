@@ -33,10 +33,13 @@ import android.app.Activity;
 import android.graphics.Color;
 import android.view.View;
 
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.ColorSensor;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -52,9 +55,9 @@ import java.util.Locale;
  * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list.
  */
-@TeleOp(name = "Sensor: REVColorDistance", group = "Sensor")
-                            // Comment this out to add to the opmode list
-public class TapeMeasureTest extends LinearOpMode {
+    @Autonomous(name = "TapeMeasureTest", group = "4924")
+
+    public class TapeMeasureTest extends LinearOpMode {
 
     /**
      * Note that the REV Robotics Color-Distance incorporates two sensors into one device.
@@ -75,6 +78,9 @@ public class TapeMeasureTest extends LinearOpMode {
      */
     ColorSensor sensorColor;
     DistanceSensor sensorDistance;
+    CRServo tape;
+    CRServo tapeM;
+
 
     @Override
     public void runOpMode() {
@@ -84,6 +90,9 @@ public class TapeMeasureTest extends LinearOpMode {
 
         // get a reference to the distance sensor that shares the same name.
         sensorDistance = hardwareMap.get(DistanceSensor.class, "color");
+       tape = hardwareMap.get(CRServo.class, "tapeMeasure");
+       tapeM = hardwareMap.get(CRServo.class, "tapeServo");
+
 
         // hsvValues is an array that will hold the hue, saturation, and value information.
         float hsvValues[] = {0F, 0F, 0F};
@@ -123,9 +132,15 @@ public class TapeMeasureTest extends LinearOpMode {
             telemetry.addData("Blue ", sensorColor.blue());
             telemetry.addData("Hue", hsvValues[0]);*/
 
+
+
             if (sensorColor.alpha() > 7500){
                 telemetry.addData("Color", "White");
+                tapeM.setPower(1);
+                tape.setPower(1);
             } else{
+                tape.setPower(0);
+                tapeM.setPower(0);
                 if ((sensorColor.red() > sensorColor.blue() + 300) && (sensorColor.blue() + 300 < sensorColor.red())){
                     telemetry.addData("Color", "Red");
                 } else if ((sensorColor.blue() > sensorColor.red() + 300) && (sensorColor.blue() > sensorColor.green() + 300)){

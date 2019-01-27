@@ -300,7 +300,21 @@ public class CraterCrossing extends LinearOpMode {
                     kicked = true;
                     encoderDrive(DRIVE_SPEED, 2, 2, 5);
                     telemetry.addData("Gold Mineral Position", "Center");
-                    encoderDrive(DRIVE_SPEED, 6, 6, 5);
+                    encoderDrive(DRIVE_SPEED, 8, 8, 5);
+                    encoderDrive(DRIVE_SPEED, -8, -8, 5);
+                    turnToPosition(.5,60);
+                    encoderDrive(DRIVE_SPEED, 15, 15, 5);
+                    turnToPosition(.5,120);
+                    encoderDrive (DRIVE_SPEED, 14, 14, 5);
+                    turnToPosition(.5,130);
+                    marker.setPosition(0);
+                    sleep(1300);
+                    marker.setPosition(75);
+                    tape.setPower(1);
+                    tapeM.setPower(1);
+                    encoderDrive(DRIVE_SPEED, -10, -10, 5);
+                    tape.setPower(0);
+                    tapeM.setPower(0);
 
                 }
             }

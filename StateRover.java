@@ -106,6 +106,8 @@ public class StateRover extends OpMode {
     boolean bumperClicked = false;
     boolean leftBumperPressedHistory = false;
     boolean leftBumperClicked = false;
+    boolean yPressedHistory = false;
+    boolean yClicked = false;
     /*
      * Code to run REPEATEDLY after the driver hits PLAY but before they hit STOP
      */
@@ -131,6 +133,11 @@ public class StateRover extends OpMode {
             leftBumperClicked = !leftBumperClicked;
         }
         leftBumperPressedHistory = gamepad1.left_bumper;
+
+        if (yPressedHistory == false && gamepad2.y == true){
+            yClicked = !yClicked;
+        }
+        yPressedHistory = gamepad2.y;
 
         //we set what to do when the motor is not given power, which is to brake completely, instead of coasting
         frontLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -158,6 +165,8 @@ public class StateRover extends OpMode {
 
         boolean halfSpeed = leftBumperClicked == true;
 
+        boolean halfSpeedCollection = yClicked == true;
+
         if (gamepad1.dpad_left && !limitSwitch2.isPressed()) {
             //if we want it to collect, we set collectionPower to 1
             extend = 1;
@@ -171,11 +180,11 @@ public class StateRover extends OpMode {
         }
 
 
-        if (gamepad2.y) {
+        if (gamepad2.dpad_up) {
             //if we want it to collect, we set collectionPower to 1
             linearMotor.setPower(0.5);
 
-        } else if (gamepad2.x) {
+        } else if (gamepad2.dpad_down) {
             //if we want the collection to deliver/spin backswards, we set collectionPower to -1
             linearMotor.setPower(-0.5);
         } else {
@@ -254,6 +263,10 @@ public class StateRover extends OpMode {
             backRightPower = 0.35 * (backRightPower);
             backLeftPower = 0.35 * (backLeftPower);
 
+        }
+
+        if (halfSpeedCollection) {
+            collectionPower = 0.35 * (collectionPower);
         }
 
         // Send calculated power to wheels and motors

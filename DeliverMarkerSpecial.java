@@ -29,12 +29,18 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import android.app.Activity;
+import android.graphics.Color;
+import android.view.View;
+
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -81,6 +87,8 @@ public class DeliverMarkerSpecial extends LinearOpMode {
     Servo marker;
     CRServo tape;
     CRServo tapeM;
+    ColorSensor sensorColor;
+    DistanceSensor sensorDistance;
 
 
     static final double     COUNTS_PER_MOTOR_REV    = 1425.2 ;
@@ -101,6 +109,8 @@ public class DeliverMarkerSpecial extends LinearOpMode {
     boolean kicked = false;
     int direction = 0;
     boolean detected = false;
+    boolean color = false;
+    boolean done = false;
     int goldPosition;
 
     /*
@@ -144,6 +154,8 @@ public class DeliverMarkerSpecial extends LinearOpMode {
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");
         backRight = hardwareMap.get(DcMotor.class, "backRight");
         linearMotor = hardwareMap.get(DcMotor.class, "linearMotor");
+        sensorColor = hardwareMap.get(ColorSensor.class, "color");
+        sensorDistance = hardwareMap.get(DistanceSensor.class, "color");
 
         linearMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         linearMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -154,11 +166,11 @@ public class DeliverMarkerSpecial extends LinearOpMode {
         backLeft.setDirection(DcMotor.Direction.FORWARD);
 
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
-        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
-        parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
         parameters.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
-        parameters.loggingEnabled      = true;
-        parameters.loggingTag          = "IMU";
+        parameters.loggingEnabled = true;
+        parameters.loggingTag = "IMU";
         parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
 
         // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
@@ -174,7 +186,19 @@ public class DeliverMarkerSpecial extends LinearOpMode {
         setMotorsModes(DcMotor.RunMode.STOP_AND_RESET_ENCODER, DRIVE_BASE_MOTORS);
         setMotorsModes(DcMotor.RunMode.RUN_USING_ENCODER, DRIVE_BASE_MOTORS);
 
+        float hsvValues[] = {0F, 0F, 0F};
 
+        // values is a reference to the hsvValues array.
+        final float values[] = hsvValues;
+
+        // sometimes it helps to multiply the raw RGB values with a scale factor
+        // to amplify/attentuate the measured values.
+        final double SCALE_FACTOR = 255;
+
+        // get a reference to the RelativeLayout so we can change the background
+        // color of the Robot Controller app to match the hue detected by the RGB sensor.
+        int relativeLayoutId = hardwareMap.appContext.getResources().getIdentifier("RelativeLayout", "id", hardwareMap.appContext.getPackageName());
+        final View relativeLayout = ((Activity) hardwareMap.appContext).findViewById(relativeLayoutId);
 
 
         /** Wait for the game to begin */
@@ -198,7 +222,7 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                 if (tfod != null) {
                     tfod.activate();
                 }
-                while (opModeIsActive()&& !detected) {
+                while (opModeIsActive() && !detected) {
                     if (tfod != null) {
                         // getUpdatedRecognitions() will return null if no new information is available since
                         // the last time that call was made.
@@ -241,7 +265,7 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                                     }
 
                                 }
-                            } else if (runtime.seconds() >= 5 && !kicked){
+                            } else if (runtime.seconds() >= 5 && !kicked) {
                                 //It has been 20 seconds and we cannot identify the gold
                                 //Assume middle
                                 direction = 0;
@@ -258,13 +282,13 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                 linearMotor.setTargetPosition(-7122);
                 linearMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 linearMotor.setPower(0.5);
-                if (linearMotor.getCurrentPosition() < -7100){
+                if (linearMotor.getCurrentPosition() < -7100) {
                     landed = true;
                     telemetry.addData("Status:", "Landed");
                     telemetry.update();
                 }
             }
-            if (landed && !latched){
+            if (landed && !latched) {
                 linearServo.setPosition(1);
                 // collectionServo.setPower(1);
                 sleep(2000);
@@ -274,27 +298,24 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                 telemetry.update();
             }
             if (landed && latched) {
-                if (direction==-1) {
+
+                if (direction == -1) {
                     kicked = true;
                     telemetry.addData("Gold Mineral Position", "Left");
                     encoderDrive(DRIVE_SPEED, 2, 2, 5);
                     turnToPosition(.5, 25);
                     encoderDrive(DRIVE_SPEED, 14, 14, 5);
                     turnToPosition(.5, -45);
-                    encoderDrive(.5,5,5,5);
+                    encoderDrive(.5, 5, 5, 5);
                     marker.setPosition(0);
                     sleep(1300);
                     marker.setPosition(75);
-                    tape.setPower(1);
-                    tapeM.setPower(1);
                     turnToPosition(.5, -45);
                     encoderDrive(DRIVE_SPEED, -10, -10, 5);
-                    sleep(5000);
-                    tape.setPower(0);
-                    tapeM.setPower(0);
-                    sleep(5000);
+                    turnToPosition(.5, -35);
+                    color = true;
 
-                } else if (direction==1) {
+                } else if (direction == 1) {
                                        /*If gold is on the right then go forward 2 inches then turn right and go forward 12
                                     inches then turn to face depot and go 12 inches and then drop marker then face crater on
                                     other color side then drive forward and set power to tape.*/
@@ -304,19 +325,14 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                     turnToPosition(.5, -25);
                     encoderDrive(DRIVE_SPEED, 12, 12, 5);
                     turnToPosition(.5, 25);
-                    encoderDrive(.5,9,9,5);
+                    encoderDrive(.5, 9, 9, 5);
                     marker.setPosition(0);
                     sleep(1300);
                     marker.setPosition(75);
                     encoderDrive(DRIVE_SPEED, 3, 3, 5);
-                    tape.setPower(1);
-                    tapeM.setPower(1);
                     turnToPosition(.5, -45);
-                    encoderDrive(DRIVE_SPEED, -10 , -10, 5);
-                    sleep(8000);
-                    tape.setPower(0);
-                    tapeM.setPower(0);
-                    sleep(5000);
+                    encoderDrive(DRIVE_SPEED, -10, -10, 5);
+                    color = true;
 
                 } else {
                                         /*If gold is in the center then go forward 12 inches and drop marker then go backwards
@@ -325,20 +341,38 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                     encoderDrive(DRIVE_SPEED, 2, 2, 5);
                     telemetry.addData("Gold Mineral Position", "Center");
                     encoderDrive(DRIVE_SPEED, 10, 10, 5);
-                    encoderDrive(.5,5,5,5);
+                    encoderDrive(.5, 5, 5, 5);
                     marker.setPosition(0);
                     sleep(1300);
                     marker.setPosition(75);
                     encoderDrive(DRIVE_SPEED, -12, -12, 5);
-                    turnToPosition(0.5,-70);
-                    tape.setPower(1);
-                    tapeM.setPower(1);
+                    turnToPosition(0.5, -70);
                     encoderDrive(DRIVE_SPEED, -5, -5, 5);
-                    sleep(8000);
-                    tape.setPower(0);
-                    tapeM.setPower(0);
-                    sleep(5000);
+                    turnToPosition(0.5, -75);
+                    color = true;
 
+                }
+
+                if (color) {
+                    Color.RGBToHSV((int) (sensorColor.red() * SCALE_FACTOR),
+                            (int) (sensorColor.green() * SCALE_FACTOR),
+                            (int) (sensorColor.blue() * SCALE_FACTOR),
+                            hsvValues);
+
+                    if (sensorColor.alpha() > 7500) {
+                        telemetry.addData("Color", "White");
+                        tapeM.setPower(1);
+                        tape.setPower(1);
+                    } else {
+                        tape.setPower(0);
+                        tapeM.setPower(0);
+                        telemetry.addData("Tape", "Stop");
+                    }
+                    telemetry.update();
+                    done = true;
+                }
+                if (done) {
+                    sleep(13000);
                 }
             }
             telemetry.update();
