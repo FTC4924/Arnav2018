@@ -141,15 +141,6 @@ import java.util.Locale;
             } else{
                 tape.setPower(0);
                 tapeM.setPower(0);
-                if ((sensorColor.red() > sensorColor.blue() + 300) && (sensorColor.blue() + 300 < sensorColor.red())){
-                    telemetry.addData("Color", "Red");
-                } else if ((sensorColor.blue() > sensorColor.red() + 300) && (sensorColor.blue() > sensorColor.green() + 300)){
-                    telemetry.addData("Color","Blue");
-                } else if ((sensorColor.green() > sensorColor.red() + 300) && (sensorColor.green() > sensorColor.blue() + 300)){
-                    telemetry.addData("Color","Green");
-                } else{
-                    telemetry.addData("Cannot Tell Color","");
-                }
             }
             telemetry.update();
 
