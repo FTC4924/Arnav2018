@@ -279,8 +279,22 @@ public class CraterCrossing extends LinearOpMode {
                     telemetry.addData("Gold Mineral Position", "Left");
                     encoderDrive(DRIVE_SPEED, 2, 2, 5);
                     turnToPosition(.5, 25);
-                    encoderDrive(DRIVE_SPEED, 8, 8, 5);
-                    encoderDrive(DRIVE_SPEED, 2, 2, 5);
+                    encoderDrive(DRIVE_SPEED, 10, 10, 5);
+                    encoderDrive(DRIVE_SPEED, -10, -10, 5);
+                    turnToPosition(.5,60);
+                    encoderDrive(DRIVE_SPEED, 15, 15, 5);
+                    turnToPosition(.5,120);
+                    encoderDrive (DRIVE_SPEED, 14, 14, 5);
+                    turnToPosition(.5,130);
+                    marker.setPosition(0);
+                    sleep(1300);
+                    marker.setPosition(75);
+                    tape.setPower(1);
+                    tapeM.setPower(1);
+                    encoderDrive(.5, -10, -10, 5);
+                    tape.setPower(0);
+                    tapeM.setPower(0);
+                    sleep(5000);
 
 
                 } else if (direction==1) {
@@ -291,8 +305,22 @@ public class CraterCrossing extends LinearOpMode {
                     telemetry.addData("Gold Mineral Position", "Right");
                     encoderDrive(DRIVE_SPEED, 2, 2, 5);
                     turnToPosition(.5, -25);
-                    encoderDrive(DRIVE_SPEED, 6, 6, 5);
-                    encoderDrive(DRIVE_SPEED, 2, 2, 5);
+                    encoderDrive(DRIVE_SPEED, 10, 10, 5);
+                    encoderDrive(DRIVE_SPEED, -10, -10, 5);
+                    turnToPosition(.5,60);
+                    encoderDrive(DRIVE_SPEED, 15, 15, 5);
+                    turnToPosition(.5,120);
+                    encoderDrive (DRIVE_SPEED, 14, 14, 5);
+                    turnToPosition(.5,130);
+                    marker.setPosition(0);
+                    sleep(1300);
+                    marker.setPosition(75);
+                    tape.setPower(1);
+                    tapeM.setPower(1);
+                    encoderDrive(.5, -10, -10, 5);
+                    tape.setPower(0);
+                    tapeM.setPower(0);
+                    sleep(5000);
 
                 } else {
                                         /*If gold is in the center then go forward 12 inches and drop marker then go backwards
@@ -312,9 +340,10 @@ public class CraterCrossing extends LinearOpMode {
                     marker.setPosition(75);
                     tape.setPower(1);
                     tapeM.setPower(1);
-                    encoderDrive(DRIVE_SPEED, -10, -10, 5);
+                    encoderDrive(.5, -10, -10, 5);
                     tape.setPower(0);
                     tapeM.setPower(0);
+                    sleep(5000);
 
                 }
             }

@@ -312,7 +312,7 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                     marker.setPosition(75);
                     turnToPosition(.5, -45);
                     encoderDrive(DRIVE_SPEED, -10, -10, 5);
-                    turnToPosition(.5, -35);
+                    turnToPosition(.5,-50);
                     color = true;
 
                 } else if (direction == 1) {

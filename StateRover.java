@@ -24,7 +24,6 @@ public class StateRover extends OpMode {
     private DcMotor linearMotor = null;
     private Servo linearServo = null;
     private DcMotor collectionServo = null;
-    private CRServo armServo = null;
     private CRServo tape = null;
     private Servo rightArm = null;
     private Servo marker = null;
@@ -35,6 +34,7 @@ public class StateRover extends OpMode {
     private TouchSensor rotationSwitch = null;
     private Servo tapeBump = null;
     private Servo mineralServo = null;
+    private CRServo deliveryServo = null;
     /*
 
      * Code to run ONCE when the driver hits INIT
@@ -60,13 +60,13 @@ public class StateRover extends OpMode {
         linearMotor = hardwareMap.get(DcMotor.class, "linearMotor");
         collectionServo = hardwareMap.get(DcMotor.class, "collectionNew");
         linearServo = hardwareMap.get(Servo.class, "linearServo");
-        armServo = hardwareMap.get(CRServo.class, "armServo");
         tape = hardwareMap.get(CRServo.class, "tapeMeasure");
         tapeM = hardwareMap.get(CRServo.class, "tapeServo");
         marker = hardwareMap.get(Servo.class,"markerServo");
         tapeM = hardwareMap.get(CRServo.class, "tapeServo");
         tapeBump = hardwareMap.get(Servo.class, "tapeBump");
         mineralServo = hardwareMap.get(Servo.class, "mineralServo");
+        deliveryServo = hardwareMap.get(CRServo.class, "deliveryServo");
         //rightArm = hardwareMap.get(Servo.class, "rightArm");
 
         // Most robots need the motor on one side to be reversed to drive forward
@@ -160,7 +160,7 @@ public class StateRover extends OpMode {
         //collectionPowerDown is dependent on whether or not we want the collection deliver (Push downwards)
 
 
-        double tapeMeasure = -0.5 * (gamepad2.right_stick_y);
+        double tapeMeasure = -1 * (gamepad2.right_stick_y);
 
 
         boolean halfSpeed = leftBumperClicked == true;
@@ -216,13 +216,11 @@ public class StateRover extends OpMode {
         }
 
         if (gamepad1.a ) {
-            //if we want it to collect, we set collectionPower to 1
-            armServo.setPower(0.6);
+            deliveryServo.setPower(1);
         } else if (gamepad1.b) {
-            //if we want the collection to deliver/spin backswards, we set collectionPower to -1
-            armServo.setPower(-0.6);
+            deliveryServo.setPower(-1);
         } else{
-            armServo.setPower(0);
+            deliveryServo.setPower(0);
         }
 
         if (gamepad1.dpad_up){
