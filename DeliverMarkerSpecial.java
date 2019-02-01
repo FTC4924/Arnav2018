@@ -297,7 +297,7 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                 telemetry.addData("Status:", "Latched");
                 telemetry.update();
             }
-            if (landed && latched) {
+            if (landed && latched && !color) {
 
                 if (direction == -1) {
                     kicked = true;
@@ -312,7 +312,7 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                     marker.setPosition(75);
                     turnToPosition(.5, -45);
                     encoderDrive(DRIVE_SPEED, -10, -10, 5);
-                    turnToPosition(.5,-50);
+                    turnToPosition(.5, -50);
                     color = true;
 
                 } else if (direction == 1) {
@@ -352,28 +352,26 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                     color = true;
 
                 }
-
-                if (color) {
+            }
+            if (color) {
                     Color.RGBToHSV((int) (sensorColor.red() * SCALE_FACTOR),
                             (int) (sensorColor.green() * SCALE_FACTOR),
                             (int) (sensorColor.blue() * SCALE_FACTOR),
                             hsvValues);
+                    tapeM.setPower(1);
+                    tape.setPower(1);
 
                     if (sensorColor.alpha() > 7500) {
                         telemetry.addData("Color", "White");
-                        tapeM.setPower(1);
-                        tape.setPower(1);
+                        telemetry.addData("alpha", sensorColor.alpha());
                     } else {
                         tape.setPower(0);
                         tapeM.setPower(0);
                         telemetry.addData("Tape", "Stop");
+                        telemetry.addData("alpha", sensorColor.alpha());
+                        sleep(13000);
                     }
                     telemetry.update();
-                    done = true;
-                }
-                if (done) {
-                    sleep(13000);
-                }
             }
             telemetry.update();
         }
