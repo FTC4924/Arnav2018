@@ -1,7 +1,6 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
@@ -11,9 +10,9 @@ import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
-@TeleOp(name = "State Rover", group = "Iterative Opmode")
-@Disabled public class StateRover extends OpMode {
+@TeleOp(name = "YTest", group = "Iterative Opmode")
 
+public class YTest extends OpMode {
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
     private DcMotor frontLeftMotor = null;
@@ -166,7 +165,7 @@ import com.qualcomm.robotcore.util.Range;
 
         boolean halfSpeed = leftBumperClicked == true;
 
-        boolean halfSpeedCollection = yClicked == true;
+        boolean halfSpeedCollection = gamepad2.y;
 
         if (gamepad1.dpad_left && !limitSwitch2.isPressed()) {
             //if we want it to collect, we set collectionPower to 1
