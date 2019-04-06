@@ -136,11 +136,14 @@ import java.util.Locale;
 
             if (sensorColor.alpha() > 7500){
                 telemetry.addData("Color", "White");
+                telemetry.addData("alpha", sensorColor.alpha());
                 tapeM.setPower(1);
                 tape.setPower(1);
             } else{
                 tape.setPower(0);
                 tapeM.setPower(0);
+                telemetry.addData("Color", "not White");
+                telemetry.addData("alpha", sensorColor.alpha());
             }
             telemetry.update();
 

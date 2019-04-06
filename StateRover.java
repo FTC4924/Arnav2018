@@ -1,6 +1,7 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.rev.RevBlinkinLedDriver;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -11,8 +12,12 @@ import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.robotcontroller.external.samples.SampleRevBlinkinLedDriver;
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.internal.system.Deadline;
+
 @TeleOp(name = "State Rover", group = "Iterative Opmode")
-@Disabled public class StateRover extends OpMode {
+ public class StateRover extends OpMode {
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
@@ -35,9 +40,9 @@ import com.qualcomm.robotcore.util.Range;
     private TouchSensor rotationSwitch = null;
     private Servo tapeBump = null;
     private Servo mineralServo = null;
-    private CRServo deliveryServo = null;
+    private Servo deliveryServo = null;
+    private Servo led = null;
     /*
-
      * Code to run ONCE when the driver hits INIT
      */
     @Override
@@ -67,8 +72,10 @@ import com.qualcomm.robotcore.util.Range;
         tapeM = hardwareMap.get(CRServo.class, "tapeServo");
         tapeBump = hardwareMap.get(Servo.class, "tapeBump");
         mineralServo = hardwareMap.get(Servo.class, "mineralServo");
-        deliveryServo = hardwareMap.get(CRServo.class, "deliveryServo");
+        deliveryServo = hardwareMap.get(Servo.class, "deliveryServo");
         //rightArm = hardwareMap.get(Servo.class, "rightArm");
+
+       led = hardwareMap.get(Servo.class, "led");
 
         // Most robots need the motor on one side to be reversed to drive forward
         // Reverse the motor that runs backwards when connected directly to the battery
@@ -216,12 +223,10 @@ import com.qualcomm.robotcore.util.Range;
             linearServo.setPosition(0.7);
         }
 
-        if (gamepad1.a ) {
-            deliveryServo.setPower(1);
-        } else if (gamepad1.b) {
-            deliveryServo.setPower(-1);
-        } else{
-            deliveryServo.setPower(0);
+        if (gamepad1.b ) {
+            deliveryServo.setPosition(0.5);
+        } else {
+            deliveryServo.setPosition(0);
         }
 
         if (gamepad1.dpad_up){
@@ -266,6 +271,9 @@ import com.qualcomm.robotcore.util.Range;
 
         if (halfSpeedCollection) {
             collectionPower = 0.35 * (collectionPower);
+            led.setPosition(0.2725);
+        } else {
+            led.setPosition(0.2325);
         }
 
         // Send calculated power to wheels and motors
