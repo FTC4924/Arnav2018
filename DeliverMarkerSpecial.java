@@ -87,8 +87,12 @@ public class DeliverMarkerSpecial extends LinearOpMode {
     Servo marker;
     CRServo tape;
     CRServo tapeM;
+    Servo led;
+    Servo mineralServo;
     ColorSensor sensorColor;
     DistanceSensor sensorDistance;
+    DcMotor extension;
+    DcMotor rotation;
 
 
     static final double     COUNTS_PER_MOTOR_REV    = 1425.2 ;
@@ -96,7 +100,7 @@ public class DeliverMarkerSpecial extends LinearOpMode {
     static final double     WHEEL_DIAMETER_INCHES   = 4.0 ;     // For figuring circumference
     static final double     COUNTS_PER_INCH         = (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
             (WHEEL_DIAMETER_INCHES * 3.1415);
-    static final double     DRIVE_SPEED             = 0.25;
+    static final double     DRIVE_SPEED             = 0.75;
 
     static BNO055IMU imu;
 
@@ -104,6 +108,7 @@ public class DeliverMarkerSpecial extends LinearOpMode {
     Orientation angles;
     protected static DcMotor[] DRIVE_BASE_MOTORS = new DcMotor[4];
     private static final double GYRO_TURN_TOLERANCE_DEGREES = 3;
+    boolean rotationOut = false;
     boolean landed = false;
     boolean latched = false;
     boolean kicked = false;
@@ -154,11 +159,20 @@ public class DeliverMarkerSpecial extends LinearOpMode {
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");
         backRight = hardwareMap.get(DcMotor.class, "backRight");
         linearMotor = hardwareMap.get(DcMotor.class, "linearMotor");
+        led = hardwareMap.get(Servo.class, "led");
         sensorColor = hardwareMap.get(ColorSensor.class, "color");
         sensorDistance = hardwareMap.get(DistanceSensor.class, "color");
+        extension = hardwareMap.get(DcMotor.class, "extension");
+        rotation = hardwareMap.get(DcMotor.class, "rotation");
+        mineralServo = hardwareMap.get(Servo.class, "mineralServo");
+
+        led.setPosition(0.7745);
+        mineralServo.setPosition(0.45);
 
         linearMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         linearMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        rotation.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         frontLeft.setDirection(DcMotor.Direction.FORWARD);
         frontRight.setDirection(DcMotor.Direction.REVERSE);
@@ -281,7 +295,7 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                 linearServo.scaleRange(0.0, 1.0);
                 linearMotor.setTargetPosition(-7122);
                 linearMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                linearMotor.setPower(0.5);
+                linearMotor.setPower(1);
                 if (linearMotor.getCurrentPosition() < -7100) {
                     landed = true;
                     telemetry.addData("Status:", "Landed");
@@ -306,7 +320,7 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                     turnToPosition(.5, 25);
                     encoderDrive(DRIVE_SPEED, 14, 14, 5);
                     turnToPosition(.5, -45);
-                    encoderDrive(.5, 5, 5, 5);
+                    encoderDrive(DRIVE_SPEED, 5, 5, 5);
                     marker.setPosition(0);
                     sleep(1300);
                     marker.setPosition(75);
@@ -361,7 +375,7 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                     tapeM.setPower(1);
                     tape.setPower(1);
 
-                    if (sensorColor.alpha() > 7500) {
+                    if (sensorColor.alpha() > 6500) {
                         telemetry.addData("Color", "White");
                         telemetry.addData("alpha", sensorColor.alpha());
                     } else {
@@ -369,9 +383,30 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                         tapeM.setPower(0);
                         telemetry.addData("Tape", "Stop");
                         telemetry.addData("alpha", sensorColor.alpha());
+                        rotation.setTargetPosition(3122);
+                        rotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                        rotation.setPower(1);
+                        if(!rotationOut) {
+                            if (rotation.getCurrentPosition() > 150) {
+                                rotation.setPower(0);
+                                extension.setPower(-1);
+                                sleep(500);
+                                extension.setPower(0);
+                                rotationOut=true;
+
+                            }
+                        }
+
+                        if (rotationOut){
+                            rotation.setPower(1);
+                            if (rotation.getCurrentPosition() > 3100) {
+                                rotation.setPower(0);
+                            }
+                        }
                         sleep(13000);
                     }
                     telemetry.update();
+
             }
             telemetry.update();
         }

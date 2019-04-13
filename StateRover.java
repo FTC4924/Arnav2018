@@ -16,7 +16,7 @@ import org.firstinspires.ftc.robotcontroller.external.samples.SampleRevBlinkinLe
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.internal.system.Deadline;
 
-@TeleOp(name = "State Rover", group = "Iterative Opmode")
+@TeleOp(name = "World Rover", group = "Iterative Opmode")
  public class StateRover extends OpMode {
 
     // Declare OpMode members.
@@ -224,7 +224,7 @@ import org.firstinspires.ftc.robotcore.internal.system.Deadline;
         }
 
         if (gamepad1.b ) {
-            deliveryServo.setPosition(0.5);
+            deliveryServo.setPosition(0.3);
         } else {
             deliveryServo.setPosition(0);
         }

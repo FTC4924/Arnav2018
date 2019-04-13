@@ -82,6 +82,9 @@ public class CraterCrossingWorld extends LinearOpMode {
     CRServo tape;
     CRServo tapeM;
     Servo led;
+    Servo mineralServo;
+    DcMotor extension;
+    DcMotor rotation;
 
 
     static final double     COUNTS_PER_MOTOR_REV    = 1425.2 ;
@@ -103,6 +106,8 @@ public class CraterCrossingWorld extends LinearOpMode {
     int direction = 0;
     boolean detected = false;
     int goldPosition;
+    boolean rotationOut = false;
+    boolean Done = false;
 
     /*
      * IMPORTANT: You need to obtain your own license key to use Vuforia. The string below with which
@@ -146,11 +151,18 @@ public class CraterCrossingWorld extends LinearOpMode {
         backRight = hardwareMap.get(DcMotor.class, "backRight");
         linearMotor = hardwareMap.get(DcMotor.class, "linearMotor");
         led = hardwareMap.get(Servo.class, "led");
+        mineralServo = hardwareMap.get(Servo.class, "mineralServo");
+        extension = hardwareMap.get(DcMotor.class, "extension");
+        rotation = hardwareMap.get(DcMotor.class, "rotation");
 
         led.setPosition(0.7745);
+        mineralServo.setPosition(0.45);
 
         linearMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         linearMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        rotation.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
 
         frontLeft.setDirection(DcMotor.Direction.FORWARD);
         frontRight.setDirection(DcMotor.Direction.REVERSE);
@@ -277,7 +289,7 @@ public class CraterCrossingWorld extends LinearOpMode {
                 telemetry.addData("Status:", "Latched");
                 telemetry.update();
             }
-            if (landed && latched) {
+            if (landed && latched && !Done) {
                 if (direction==-1) {
                     kicked = true;
                     telemetry.addData("Gold Mineral Position", "Left");
@@ -294,6 +306,7 @@ public class CraterCrossingWorld extends LinearOpMode {
                     sleep(1300);
                     marker.setPosition(75);
                     encoderDrive(1, -10, -10, 5);
+                    Done=true;
                     sleep(20000);
 
 
@@ -316,6 +329,7 @@ public class CraterCrossingWorld extends LinearOpMode {
                     sleep(1300);
                     marker.setPosition(75);
                     encoderDrive(1, -10, -10, 5);
+                    Done=true;
                     sleep(20000);
 
                 } else {
@@ -335,8 +349,31 @@ public class CraterCrossingWorld extends LinearOpMode {
                     sleep(1300);
                     marker.setPosition(75);
                     encoderDrive(1, -10, -10, 5);
+                    Done=true;
                     sleep(20000);
 
+                }
+                if(Done){
+                    rotation.setTargetPosition(3122);
+                    rotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    rotation.setPower(1);
+                    if(!rotationOut) {
+                        if (rotation.getCurrentPosition() > 150) {
+                            rotation.setPower(0);
+                            extension.setPower(-1);
+                            sleep(700);
+                            extension.setPower(0);
+                            rotationOut=true;
+
+                        }
+                    }
+
+                    if (rotationOut){
+                        rotation.setPower(1);
+                        if (rotation.getCurrentPosition() > 3100) {
+                            rotation.setPower(0);
+                        }
+                    }
                 }
             }
             telemetry.update();

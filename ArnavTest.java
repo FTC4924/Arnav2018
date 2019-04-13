@@ -1,80 +1,77 @@
 package org.firstinspires.ftc.teamcode;
 
-import android.text.method.Touch;
-import android.util.Log;
-
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
-import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DistanceSensor;
-import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.robotcore.util.Range;
 
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 
-@Autonomous(name="ArnavTest", group="Linear Opmode")
+
+@Autonomous(name = "ArnavTest Auto", group = "4924")
+
 public class ArnavTest extends LinearOpMode {
-
-    // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
+    DcMotor extension;
+    DcMotor rotation;
 
+    boolean rotationOut = false;
 
-    TouchSensor limitSwitch;
-    Servo linearServo;
-    DcMotor motor;
-    DcMotor frontRight;
-    DcMotor backLeft;
-    DcMotor backRight;
-    DcMotor frontLeft;
-
-    final int WHITE_ALPHA = 150;
-
-    boolean kicked = false;
+    static BNO055IMU imu;
 
     @Override
     public void runOpMode() {
+        extension = hardwareMap.get(DcMotor.class, "extension");
+        rotation = hardwareMap.get(DcMotor.class, "rotation");
 
-        limitSwitch = hardwareMap.get(TouchSensor.class, "limitSwitch");
-        linearServo = hardwareMap.get(Servo.class, "linearServo");
-        motor = hardwareMap.get(DcMotor.class, "linearMotor");
-        frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
-        frontRight = hardwareMap.get(DcMotor.class, "frontRight");
-        backLeft = hardwareMap.get(DcMotor.class, "backLeft");
-        backRight = hardwareMap.get(DcMotor.class, "backRight");
-        telemetry.addData("Status", "Initialized");
+        rotation.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        parameters.calibrationDataFile = "BNO055IMUCalibration.json";
+        parameters.loggingEnabled = true;
+        parameters.loggingTag = "IMU";
+        parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
+
+        // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
+        // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
+        // and named "imu".
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        imu.initialize(parameters);
+
+
+        /** Wait for the game to begin */
+        telemetry.addData(">", "Press Play to start tracking");
         telemetry.update();
-
         waitForStart();
-        runtime.reset();
+        telemetry.addData("Status:", "Starting");
+        telemetry.update();
 
         while (opModeIsActive()) {
 
-            if (!kicked){
+            rotation.setTargetPosition(3122);
+            rotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            rotation.setPower(1);
+            if(!rotationOut) {
+                if (rotation.getCurrentPosition() > 150) {
+                    rotation.setPower(0);
+                    extension.setPower(-1);
+                    sleep(700);
+                    extension.setPower(0);
+                    rotationOut=true;
 
-                linearServo.scaleRange(0.0, 1.0);
+                }
+            }
 
-                frontRight.setDirection(DcMotor.Direction.REVERSE);
-                backRight.setDirection(DcMotor.Direction.REVERSE);
-                motor.setDirection(DcMotor.Direction.REVERSE);
-
-                motor.setPower(1);
-
-                    if (limitSwitch.isPressed()) {
-                        kicked = true;
-                        motor.setPower(0);
-                        linearServo.setPosition(1);
-                        sleep(5000);
-                        frontRight.setPower(.5);
-                        frontLeft.setPower(.5);
-                        backLeft.setPower(.5);
-                        backRight.setPower(.5);
-                    }
-
+            if (rotationOut){
+                rotation.setPower(1);
+                if (rotation.getCurrentPosition() > 3100) {
+                    rotation.setPower(0);
+                }
             }
 
         }
