@@ -115,7 +115,8 @@ public class DeliverMarkerSpecial extends LinearOpMode {
     int direction = 0;
     boolean detected = false;
     boolean color = false;
-    boolean done = false;
+    boolean done1 = false;
+    boolean done2 = false;
     int goldPosition;
 
     /*
@@ -367,48 +368,56 @@ public class DeliverMarkerSpecial extends LinearOpMode {
 
                 }
             }
-            if (color) {
-                    Color.RGBToHSV((int) (sensorColor.red() * SCALE_FACTOR),
-                            (int) (sensorColor.green() * SCALE_FACTOR),
-                            (int) (sensorColor.blue() * SCALE_FACTOR),
-                            hsvValues);
-                    tapeM.setPower(1);
-                    tape.setPower(1);
+            if (color && !done1) {
+                Color.RGBToHSV((int) (sensorColor.red() * SCALE_FACTOR),
+                        (int) (sensorColor.green() * SCALE_FACTOR),
+                        (int) (sensorColor.blue() * SCALE_FACTOR),
+                        hsvValues);
 
-                    if (sensorColor.alpha() > 6500) {
-                        telemetry.addData("Color", "White");
-                        telemetry.addData("alpha", sensorColor.alpha());
-                    } else {
-                        tape.setPower(0);
-                        tapeM.setPower(0);
-                        telemetry.addData("Tape", "Stop");
-                        telemetry.addData("alpha", sensorColor.alpha());
-                        rotation.setTargetPosition(3122);
-                        rotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                        rotation.setPower(1);
-                        if(!rotationOut) {
-                            if (rotation.getCurrentPosition() > 150) {
-                                rotation.setPower(0);
-                                extension.setPower(-1);
-                                sleep(500);
-                                extension.setPower(0);
-                                rotationOut=true;
-
-                            }
-                        }
-
-                        if (rotationOut){
-                            rotation.setPower(1);
-                            if (rotation.getCurrentPosition() > 3100) {
-                                rotation.setPower(0);
-                            }
-                        }
-                        sleep(13000);
-                    }
-                    telemetry.update();
-
+               if (sensorColor.alpha() > 5500) {
+                   telemetry.addData("Color", "White");
+                   telemetry.addData("alpha", sensorColor.alpha());
+                   tapeM.setPower(1);
+                   tape.setPower(1);
+               } else {
+                   tape.setPower(0);
+                   tapeM.setPower(0);
+                   telemetry.addData("Tape", "Stop");
+                   telemetry.addData("alpha", sensorColor.alpha());
+                   done1 = true;
+               }
+               telemetry.update();
             }
             telemetry.update();
+
+            if (color && !done2){
+                rotation.setTargetPosition(3122);
+                rotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                rotation.setPower(1);
+                if(!rotationOut) {
+                    if (rotation.getCurrentPosition() > 150) {
+                        rotation.setPower(0);
+                        extension.setPower(-1);
+                        sleep(700);
+                        extension.setPower(0);
+                        rotationOut=true;
+
+                    }
+                }
+
+                if (rotationOut){
+                    rotation.setPower(1);
+                    if (rotation.getCurrentPosition() > 3100) {
+                        rotation.setPower(0);
+                        done2=true;
+                    }
+                }
+
+            }
+
+            if(done1 && done2){
+                sleep(10000);
+            }
         }
 
 
