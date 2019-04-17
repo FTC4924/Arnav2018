@@ -270,7 +270,7 @@ import org.firstinspires.ftc.robotcore.internal.system.Deadline;
         }
 
         if (halfSpeedCollection) {
-            collectionPower = 0.35 * (collectionPower);
+            collectionPower = 0.20 * (collectionPower);
             led.setPosition(0.2725);
         } else {
             led.setPosition(0.2325);
