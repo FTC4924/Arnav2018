@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
@@ -15,8 +17,11 @@ public class ArnavTest extends LinearOpMode {
     private ElapsedTime runtime = new ElapsedTime();
     DcMotor extension;
     DcMotor rotation;
+    Servo armBump;
+    TouchSensor limitSwitch;
 
     boolean rotationOut = false;
+    boolean done1 = false;
 
     static BNO055IMU imu;
 
@@ -24,6 +29,10 @@ public class ArnavTest extends LinearOpMode {
     public void runOpMode() {
         extension = hardwareMap.get(DcMotor.class, "extension");
         rotation = hardwareMap.get(DcMotor.class, "rotation");
+        armBump = hardwareMap.get(Servo.class, "armBump");
+        limitSwitch = hardwareMap.get(TouchSensor.class, "limitSwitch");
+
+        armBump.setPosition(.45);
 
         rotation.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -52,28 +61,34 @@ public class ArnavTest extends LinearOpMode {
         telemetry.update();
 
         while (opModeIsActive()) {
-
-            rotation.setTargetPosition(3122);
-            rotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            rotation.setPower(1);
-            if(!rotationOut) {
-                if (rotation.getCurrentPosition() > 150) {
-                    rotation.setPower(0);
-                    extension.setPower(-1);
-                    sleep(700);
-                    extension.setPower(0);
-                    rotationOut=true;
-
-                }
-            }
-
-            if (rotationOut){
+            if(!done1) {
+                armBump.setPosition(0);
+                rotation.setTargetPosition(1322);
+                rotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 rotation.setPower(1);
-                if (rotation.getCurrentPosition() > 3100) {
-                    rotation.setPower(0);
+                if (!rotationOut) {
+                    if (rotation.getCurrentPosition() > 300) {
+                        rotation.setPower(0);
+                        extension.setPower(-1);
+                        sleep(1400);
+                        extension.setPower(0);
+                        rotationOut = true;
+
+                    }
+                }
+
+                if (rotationOut) {
+                    rotation.setPower(1);
+                    if (rotation.getCurrentPosition() > 1300) {
+                        rotation.setPower(0);
+                        extension.setPower(-1);
+                        if (limitSwitch.isPressed()) {
+                            extension.setPower(0);
+                            done1 = true;
+                        }
+                    }
                 }
             }
-
         }
     }
 }

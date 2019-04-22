@@ -38,7 +38,7 @@ import org.firstinspires.ftc.robotcore.internal.system.Deadline;
     private TouchSensor limitSwitch2 = null;
     private TouchSensor limitSwitch = null;
     private TouchSensor rotationSwitch = null;
-    private Servo tapeBump = null;
+    private Servo armBump = null;
     private Servo mineralServo = null;
     private Servo deliveryServo = null;
     private Servo led = null;
@@ -70,7 +70,7 @@ import org.firstinspires.ftc.robotcore.internal.system.Deadline;
         tapeM = hardwareMap.get(CRServo.class, "tapeServo");
         marker = hardwareMap.get(Servo.class,"markerServo");
         tapeM = hardwareMap.get(CRServo.class, "tapeServo");
-        tapeBump = hardwareMap.get(Servo.class, "tapeBump");
+        armBump = hardwareMap.get(Servo.class, "armBump");
         mineralServo = hardwareMap.get(Servo.class, "mineralServo");
         deliveryServo = hardwareMap.get(Servo.class, "deliveryServo");
         //rightArm = hardwareMap.get(Servo.class, "rightArm");
@@ -200,10 +200,10 @@ import org.firstinspires.ftc.robotcore.internal.system.Deadline;
         }
 
         if (gamepad2.a) {
-            tapeBump.setPosition(.45);
+            armBump.setPosition(.45);
 
         } else if (gamepad2.b) {
-            tapeBump.setPosition(0);
+            armBump.setPosition(0);
         }
 
         if (collectionPowerUp) {

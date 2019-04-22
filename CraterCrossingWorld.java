@@ -94,6 +94,7 @@ public class CraterCrossingWorld extends LinearOpMode {
     DistanceSensor sensorDistance;
     DcMotor extension;
     DcMotor rotation;
+    Servo armBump;
 
 
     static final double     COUNTS_PER_MOTOR_REV    = 1425.2 ;
@@ -166,7 +167,9 @@ public class CraterCrossingWorld extends LinearOpMode {
         extension = hardwareMap.get(DcMotor.class, "extension");
         rotation = hardwareMap.get(DcMotor.class, "rotation");
         mineralServo = hardwareMap.get(Servo.class, "mineralServo");
+        armBump = hardwareMap.get(Servo.class, "armBump");
 
+        armBump.setPosition(.45);
         led.setPosition(0.7745);
         mineralServo.setPosition(0.45);
 
@@ -395,14 +398,15 @@ public class CraterCrossingWorld extends LinearOpMode {
             }
 
             if (markerDone && !done1){
-                rotation.setTargetPosition(3122);
+                armBump.setPosition(0);
+                rotation.setTargetPosition(1322);
                 rotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 rotation.setPower(1);
                 if(!rotationOut) {
-                    if (rotation.getCurrentPosition() > 150) {
+                    if (rotation.getCurrentPosition() > 300) {
                         rotation.setPower(0);
                         extension.setPower(-1);
-                        sleep(700);
+                        sleep(1400);
                         extension.setPower(0);
                         rotationOut=true;
 
@@ -411,9 +415,13 @@ public class CraterCrossingWorld extends LinearOpMode {
 
                 if (rotationOut){
                     rotation.setPower(1);
-                    if (rotation.getCurrentPosition() > 3100) {
+                    if (rotation.getCurrentPosition() > 1300) {
                         rotation.setPower(0);
-                        done1=true;
+                        extension.setPower(-1);
+                        if (limitSwitch.isPressed()) {
+                            extension.setPower(0);
+                            done1 = true;
+                        }
                     }
                 }
 

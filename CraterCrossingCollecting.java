@@ -1,36 +1,36 @@
+
 /* Copyright (c) 2018 FIRST. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted (subject to the limitations in the disclaimer below) provided that
- * the following conditions are met:
- *
- * Redistributions of source code must retain the above copyright notice, this list
- * of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice, this
- * list of conditions and the following disclaimer in the documentation and/or
- * other materials provided with the distribution.
- *
- * Neither the name of FIRST nor the names of its contributors may be used to endorse or
- * promote products derived from this software without specific prior written permission.
- *
- * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS
- * LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+         *
+         * Redistribution and use in source and binary forms, with or without modification,
+         * are permitted (subject to the limitations in the disclaimer below) provided that
+         * the following conditions are met:
+         *
+         * Redistributions of source code must retain the above copyright notice, this list
+         * of conditions and the following disclaimer.
+         *
+         * Redistributions in binary form must reproduce the above copyright notice, this
+         * list of conditions and the following disclaimer in the documentation and/or
+         * other materials provided with the distribution.
+         *
+         * Neither the name of FIRST nor the names of its contributors may be used to endorse or
+         * promote products derived from this software without specific prior written permission.
+         *
+         * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS
+         * LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+         * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+         * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+         * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+         * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+         * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+         * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+         * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+         * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+         * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+         */
 
 package org.firstinspires.ftc.teamcode;
 
 import android.app.Activity;
-import android.graphics.Color;
 import android.view.View;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
@@ -69,9 +69,9 @@ import java.util.List;
  * IMPORTANT: In order to use this OpMode, you need to obtain your own Vuforia license key as
  * is explained below.
  */
-@Autonomous(name = "Marker Starting World", group = "4924")
+@Autonomous(name = "Crater Crossing Collecting", group = "4924")
 
-public class DeliverMarkerSpecial extends LinearOpMode {
+public class CraterCrossingCollecting extends LinearOpMode {
     private static final String TFOD_MODEL_ASSET = "RoverRuckus.tflite";
     private static final String LABEL_GOLD_MINERAL = "Gold Mineral";
     private static final String LABEL_SILVER_MINERAL = "Silver Mineral";
@@ -82,6 +82,7 @@ public class DeliverMarkerSpecial extends LinearOpMode {
     DcMotor backRight;
     DcMotor linearMotor;
     TouchSensor limitSwitch;
+    TouchSensor rotationSwitch;
     Servo linearServo;
     // CRServo collectionServo;
     Servo marker;
@@ -93,6 +94,8 @@ public class DeliverMarkerSpecial extends LinearOpMode {
     DistanceSensor sensorDistance;
     DcMotor extension;
     DcMotor rotation;
+    DcMotor collectionServo;
+    Servo deliveryServo;
     Servo armBump;
 
 
@@ -115,9 +118,8 @@ public class DeliverMarkerSpecial extends LinearOpMode {
     boolean kicked = false;
     int direction = 0;
     boolean detected = false;
-    boolean color = false;
+    boolean markerDone = false;
     boolean done1 = false;
-    boolean done2 = false;
     int goldPosition;
 
     /*
@@ -151,6 +153,7 @@ public class DeliverMarkerSpecial extends LinearOpMode {
         initVuforia();
 
         limitSwitch = hardwareMap.get(TouchSensor.class, "limitSwitch");
+        rotationSwitch = hardwareMap.get(TouchSensor.class, "rotationSwitch");
         linearServo = hardwareMap.get(Servo.class, "linearServo");
         //collectionServo = hardwareMap.get(CRServo.class, "collectionServo");
         marker = hardwareMap.get(Servo.class, "markerServo");
@@ -167,6 +170,8 @@ public class DeliverMarkerSpecial extends LinearOpMode {
         extension = hardwareMap.get(DcMotor.class, "extension");
         rotation = hardwareMap.get(DcMotor.class, "rotation");
         mineralServo = hardwareMap.get(Servo.class, "mineralServo");
+        collectionServo = hardwareMap.get(DcMotor.class, "collectionNew");
+        deliveryServo = hardwareMap.get(Servo.class, "deliveryServo");
         armBump = hardwareMap.get(Servo.class, "armBump");
 
         armBump.setPosition(.45);
@@ -315,25 +320,18 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                 telemetry.addData("Status:", "Latched");
                 telemetry.update();
             }
-            if (landed && latched && !color) {
+            if (landed && latched && !markerDone) {
 
-                if (direction == -1) {
+                if (direction==-1) {
                     kicked = true;
                     telemetry.addData("Gold Mineral Position", "Left");
                     encoderDrive(DRIVE_SPEED, 2, 2, 5);
                     turnToPosition(.5, 25);
-                    encoderDrive(DRIVE_SPEED, 14, 14, 5);
-                    turnToPosition(.5, -45);
-                    encoderDrive(DRIVE_SPEED, 5, 5, 5);
-                    marker.setPosition(0);
-                    sleep(1300);
-                    marker.setPosition(75);
-                    turnToPosition(.5, -45);
-                    encoderDrive(DRIVE_SPEED, -10, -10, 5);
-                    turnToPosition(.5, -50);
-                    color = true;
+                    encoderDrive(DRIVE_SPEED, 10, 10, 5);
+                    encoderDrive(DRIVE_SPEED, -8, -8, 5);
+                    markerDone=true;
 
-                } else if (direction == 1) {
+                } else if (direction==1) {
                                        /*If gold is on the right then go forward 2 inches then turn right and go forward 12
                                     inches then turn to face depot and go 12 inches and then drop marker then face crater on
                                     other color side then drive forward and set power to tape.*/
@@ -341,16 +339,10 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                     telemetry.addData("Gold Mineral Position", "Right");
                     encoderDrive(DRIVE_SPEED, 2, 2, 5);
                     turnToPosition(.5, -25);
-                    encoderDrive(DRIVE_SPEED, 12, 12, 5);
-                    turnToPosition(.5, 25);
-                    encoderDrive(.5, 9, 9, 5);
-                    marker.setPosition(0);
-                    sleep(1300);
-                    marker.setPosition(75);
-                    encoderDrive(DRIVE_SPEED, 3, 3, 5);
-                    turnToPosition(.5, -45);
-                    encoderDrive(DRIVE_SPEED, -10, -10, 5);
-                    color = true;
+                    encoderDrive(DRIVE_SPEED, 10, 10, 5);
+                    encoderDrive(DRIVE_SPEED, -8, -8, 5);
+                    markerDone=true;
+
 
                 } else {
                                         /*If gold is in the center then go forward 12 inches and drop marker then go backwards
@@ -358,42 +350,14 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                     kicked = true;
                     encoderDrive(DRIVE_SPEED, 2, 2, 5);
                     telemetry.addData("Gold Mineral Position", "Center");
-                    encoderDrive(DRIVE_SPEED, 10, 10, 5);
-                    encoderDrive(.5, 5, 5, 5);
-                    marker.setPosition(0);
-                    sleep(1300);
-                    marker.setPosition(75);
-                    encoderDrive(DRIVE_SPEED, -12, -12, 5);
-                    turnToPosition(0.5, -70);
-                    encoderDrive(DRIVE_SPEED, -5, -5, 5);
-                    turnToPosition(0.5, -75);
-                    color = true;
+                    encoderDrive(DRIVE_SPEED, 8, 8, 5);
+                    encoderDrive(DRIVE_SPEED, -8, -8, 5);
+                    markerDone=true;
 
                 }
             }
-            if (color && !done1) {
-                Color.RGBToHSV((int) (sensorColor.red() * SCALE_FACTOR),
-                        (int) (sensorColor.green() * SCALE_FACTOR),
-                        (int) (sensorColor.blue() * SCALE_FACTOR),
-                        hsvValues);
 
-               if (sensorColor.alpha() > 5500) {
-                   telemetry.addData("Color", "White");
-                   telemetry.addData("alpha", sensorColor.alpha());
-                   tapeM.setPower(1);
-                   tape.setPower(1);
-               } else {
-                   tape.setPower(0);
-                   tapeM.setPower(0);
-                   telemetry.addData("Tape", "Stop");
-                   telemetry.addData("alpha", sensorColor.alpha());
-                   done1 = true;
-               }
-               telemetry.update();
-            }
-            telemetry.update();
-
-            if (color && !done2){
+            if (markerDone && !done1){
                 armBump.setPosition(0);
                 rotation.setTargetPosition(1322);
                 rotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -416,15 +380,23 @@ public class DeliverMarkerSpecial extends LinearOpMode {
                         extension.setPower(-1);
                         if (limitSwitch.isPressed()) {
                             extension.setPower(0);
-                            done2 = true;
+                            done1 = true;
                         }
                     }
                 }
 
             }
 
-            if(done1 && done2){
-                sleep(10000);
+            if(done1){
+                rotation.setTargetPosition(0);
+                rotation.setPower(-1);
+                if(rotation.getCurrentPosition() < 1050) {
+                    rotation.setPower(0);
+                    collectionServo.setPower(0);
+                    deliveryServo.setPosition(0.3);
+                    sleep(1000);
+                    collectionServo.setPower(.3);
+                }
             }
         }
 
