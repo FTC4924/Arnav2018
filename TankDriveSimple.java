@@ -40,7 +40,10 @@ public class TankDriveSimple extends OpMode {
         //Robot is controlled with "Tank Drive" using left and right joysticks
         if (gamepad1.left_stick_y > 0.01 || gamepad1.left_stick_y < -0.01) {
 
-            move(gamepad1.left_stick_y);
+            frontLeftMotor.setPower(gamepad1.left_stick_y);
+            backLeftMotor.setPower(gamepad1.left_stick_y);
+            frontRightMotor.setPower(gamepad1.left_stick_y);
+            backRightMotor.setPower(gamepad1.left_stick_y);
 
         } else if (gamepad1.right_trigger > 0.0) {
 
