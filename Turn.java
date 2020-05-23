@@ -9,24 +9,16 @@ public class Turn extends Command {
     public Turn(double angle, double power) {
         this.angle = angle;
         this.power = power;
-
-        if (this.angle < 0) {
-            this.power *= -1;
-        }
     }
 
     @Override
     public boolean isComplete(double currentPoint) {
-        double difference = Math.abs((angle + startPoint) - currentPoint);
+        double difference = Math.abs(angle - currentPoint);
 
         while (difference > 180) {
             difference -= 180;
         }
 
         return Math.abs(difference) < TOLERANCE;
-    }
-
-    public double getPower() {
-        return power;
     }
 }
