@@ -1,42 +1,41 @@
-/* Copyright (c) 2018 FIRST. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted (subject to the limitations in the disclaimer below) provided that
- * the following conditions are met:
- *
- * Redistributions of source code must retain the above copyright notice, this list
- * of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice, this
- * list of conditions and the following disclaimer in the documentation and/or
- * other materials provided with the distribution.
- *
- * Neither the name of FIRST nor the names of its contributors may be used to endorse or
- * promote products derived from this software without specific prior written permission.
- *
- * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS
- * LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
 
-package org.firstinspires.ftc.teamcode.Old;
+/* Copyright (c) 2018 FIRST. All rights reserved.
+         *
+         * Redistribution and use in source and binary forms, with or without modification,
+         * are permitted (subject to the limitations in the disclaimer below) provided that
+         * the following conditions are met:
+         *
+         * Redistributions of source code must retain the above copyright notice, this list
+         * of conditions and the following disclaimer.
+         *
+         * Redistributions in binary form must reproduce the above copyright notice, this
+         * list of conditions and the following disclaimer in the documentation and/or
+         * other materials provided with the distribution.
+         *
+         * Neither the name of FIRST nor the names of its contributors may be used to endorse or
+         * promote products derived from this software without specific prior written permission.
+         *
+         * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS
+         * LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+         * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+         * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+         * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+         * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+         * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+         * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+         * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+         * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+         * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+         */
+
+package org.firstinspires.ftc.teamcode;
 
 import android.app.Activity;
-import android.graphics.Color;
 import android.view.View;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.ColorSensor;
@@ -70,10 +69,9 @@ import java.util.List;
  * IMPORTANT: In order to use this OpMode, you need to obtain your own Vuforia license key as
  * is explained below.
  */
-@Autonomous(name = "Crater Crossing Marker", group = "4924")
+@Autonomous(name = "Crater Crossing World 2 Mineral", group = "4924")
 
-@Disabled
-public class CraterCrossingMarker extends LinearOpMode {
+public class CraterCrossingWorld__2Mineral extends LinearOpMode {
     private static final String TFOD_MODEL_ASSET = "RoverRuckus.tflite";
     private static final String LABEL_GOLD_MINERAL = "Gold Mineral";
     private static final String LABEL_SILVER_MINERAL = "Silver Mineral";
@@ -89,10 +87,13 @@ public class CraterCrossingMarker extends LinearOpMode {
     Servo marker;
     CRServo tape;
     CRServo tapeM;
-    ColorSensor sensorColor;
-    DistanceSensor sensorDistance;
     Servo led;
     Servo mineralServo;
+    ColorSensor sensorColor;
+    DistanceSensor sensorDistance;
+    DcMotor extension;
+    DcMotor rotation;
+    Servo armBump;
 
 
     static final double     COUNTS_PER_MOTOR_REV    = 1425.2 ;
@@ -108,13 +109,14 @@ public class CraterCrossingMarker extends LinearOpMode {
     Orientation angles;
     protected static DcMotor[] DRIVE_BASE_MOTORS = new DcMotor[4];
     private static final double GYRO_TURN_TOLERANCE_DEGREES = 3;
+    boolean rotationOut = false;
     boolean landed = false;
     boolean latched = false;
     boolean kicked = false;
     int direction = 0;
     boolean detected = false;
-    boolean color = false;
-    boolean done = false;
+    boolean markerDone = false;
+    boolean done1 = false;
     int goldPosition;
 
     /*
@@ -158,16 +160,22 @@ public class CraterCrossingMarker extends LinearOpMode {
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");
         backRight = hardwareMap.get(DcMotor.class, "backRight");
         linearMotor = hardwareMap.get(DcMotor.class, "linearMotor");
-        mineralServo = hardwareMap.get(Servo.class, "mineralServo");
+        led = hardwareMap.get(Servo.class, "led");
         sensorColor = hardwareMap.get(ColorSensor.class, "color");
         sensorDistance = hardwareMap.get(DistanceSensor.class, "color");
-        led = hardwareMap.get(Servo.class, "led");
+        extension = hardwareMap.get(DcMotor.class, "extension");
+        rotation = hardwareMap.get(DcMotor.class, "rotation");
+        mineralServo = hardwareMap.get(Servo.class, "mineralServo");
+        armBump = hardwareMap.get(Servo.class, "armBump");
 
+        armBump.setPosition(.45);
         led.setPosition(0.7745);
         mineralServo.setPosition(0.45);
 
         linearMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         linearMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        rotation.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         frontLeft.setDirection(DcMotor.Direction.FORWARD);
         frontRight.setDirection(DcMotor.Direction.REVERSE);
@@ -306,7 +314,7 @@ public class CraterCrossingMarker extends LinearOpMode {
                 telemetry.addData("Status:", "Latched");
                 telemetry.update();
             }
-            if (landed && latched && !color) {
+            if (landed && latched && !markerDone) {
 
                 if (direction==-1) {
                     kicked = true;
@@ -314,9 +322,17 @@ public class CraterCrossingMarker extends LinearOpMode {
                     encoderDrive(DRIVE_SPEED, 2, 2, 5);
                     turnToPosition(.5, 25);
                     encoderDrive(DRIVE_SPEED, 10, 10, 5);
-                    encoderDrive(DRIVE_SPEED, -5, -5, 5);
+                    encoderDrive(DRIVE_SPEED, -8, -8, 5);
+                    turnToPosition(.5,60);
+                    encoderDrive(DRIVE_SPEED, 15, 15, 5);
+                    turnToPosition(.5,120);
+                    encoderDrive (DRIVE_SPEED, 18, 18, 5);
+                    turnToPosition(.5,130);
+                    marker.setPosition(0);
+                    sleep(1300);
+                    marker.setPosition(75);
                     turnToPosition(.5,-80);
-                    color=true;
+                   // markerDone=true;
 
                 } else if (direction==1) {
                                        /*If gold is on the right then go forward 2 inches then turn right and go forward 12
@@ -327,15 +343,23 @@ public class CraterCrossingMarker extends LinearOpMode {
                     encoderDrive(DRIVE_SPEED, 2, 2, 5);
                     turnToPosition(.5, -25);
                     encoderDrive(DRIVE_SPEED, 10, 10, 5);
-                    encoderDrive(DRIVE_SPEED, -3.5, -3.5, 5);
-                    turnToPosition(.5,-65);
                     encoderDrive(DRIVE_SPEED, -8, -8, 5);
-                    tape.setPower(1);
+                    turnToPosition(.5,60);
+                    encoderDrive(DRIVE_SPEED, 18, 18, 5);
+                    turnToPosition(.5,120);
+                    encoderDrive (DRIVE_SPEED, 14, 14, 5);
+                    turnToPosition(.5,130);
+                    marker.setPosition(0);
+                    sleep(1300);
+                    marker.setPosition(75);
+                    encoderDrive(1, -18, -18, 5);
+                    turnToPosition(.5,130);
                     tapeM.setPower(1);
-                    sleep(3000);
-                    tape.setPower(0);
+                    tape.setPower(1);
+                    sleep(1000);
                     tapeM.setPower(0);
-                    color=true;
+                    tape.setPower(0);
+                    markerDone=true;
 
 
                 } else {
@@ -345,34 +369,54 @@ public class CraterCrossingMarker extends LinearOpMode {
                     encoderDrive(DRIVE_SPEED, 2, 2, 5);
                     telemetry.addData("Gold Mineral Position", "Center");
                     encoderDrive(DRIVE_SPEED, 8, 8, 5);
-                    encoderDrive(DRIVE_SPEED, -4, -4, 5);
-                    turnToPosition(.5,-80);
-                    color=true;
+                    encoderDrive(DRIVE_SPEED, -8, -8, 5);
+                    turnToPosition(.5,60);
+                    encoderDrive(DRIVE_SPEED, 15, 15, 5);
+                    turnToPosition(.5,120);
+                    encoderDrive (DRIVE_SPEED, 14, 14, 5);
+                    turnToPosition(.5,130);
+                    marker.setPosition(0);
+                    sleep(1300);
+                    marker.setPosition(75);
+                    turnToPosition(.5,-20);
+                   // markerDone=true;
+
                 }
             }
-           /* if (color) {
-                Color.RGBToHSV((int) (sensorColor.red() * SCALE_FACTOR),
-                        (int) (sensorColor.green() * SCALE_FACTOR),
-                        (int) (sensorColor.blue() * SCALE_FACTOR),
-                        hsvValues);
-                        tapeM.setPower(1);
-                        tape.setPower(1);
 
-                if (sensorColor.alpha() > 7500) {
-                    telemetry.addData("Color", "White");
-                    telemetry.addData("alpha", sensorColor.alpha());
-                } else {
-                    tape.setPower(0);
-                    tapeM.setPower(0);
-                    telemetry.addData("Tape", "Stop");
-                    telemetry.addData("alpha", sensorColor.alpha());
-                    encoderDrive(1, -.5, -.5, 5);
-                    encoderDrive(1, .5, .5, 5);
-                    sleep(13000);
+            if (markerDone && !done1){
+                armBump.setPosition(0);
+                rotation.setTargetPosition(1322);
+                rotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                rotation.setPower(1);
+                if(!rotationOut) {
+                    if (rotation.getCurrentPosition() > 300) {
+                        rotation.setPower(0);
+                        extension.setPower(-1);
+                        sleep(1400);
+                        extension.setPower(0);
+                        rotationOut=true;
+
+                    }
                 }
-                telemetry.update();
-            }*/
-            telemetry.update();
+
+                if (rotationOut){
+                    rotation.setPower(1);
+                    if (rotation.getCurrentPosition() > 1300) {
+                        rotation.setPower(0);
+                        extension.setPower(-1);
+                        if (limitSwitch.isPressed()) {
+                            extension.setPower(0);
+                            done1 = true;
+                        }
+                    }
+                }
+
+            }
+
+            if(done1){
+                sleep(10000);
+            }
         }
 
 

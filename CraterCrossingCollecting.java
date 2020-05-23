@@ -28,7 +28,7 @@
          * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
          */
 
-package org.firstinspires.ftc.teamcode.Old;
+package org.firstinspires.ftc.teamcode;
 
 import android.app.Activity;
 import android.view.View;

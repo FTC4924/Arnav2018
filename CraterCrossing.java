@@ -27,8 +27,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.firstinspires.ftc.teamcode.Old;
+package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -42,15 +44,11 @@ import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer.CameraDirection;
-import org.firstinspires.ftc.robotcore.external.tfod.*;
-import com.qualcomm.hardware.bosch.BNO055IMU;
-import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
-
-
-import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
-
+import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
+import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 
 import java.util.List;
 
@@ -66,10 +64,10 @@ import java.util.List;
  * IMPORTANT: In order to use this OpMode, you need to obtain your own Vuforia license key as
  * is explained below.
  */
-@Autonomous(name = "Marker Starting", group = "4924")
+@Autonomous(name = "Crater Crossing states", group = "4924")
 
 @Disabled
-public class DeliverMarker extends LinearOpMode {
+public class CraterCrossing extends LinearOpMode {
     private static final String TFOD_MODEL_ASSET = "RoverRuckus.tflite";
     private static final String LABEL_GOLD_MINERAL = "Gold Mineral";
     private static final String LABEL_SILVER_MINERAL = "Silver Mineral";
@@ -81,9 +79,10 @@ public class DeliverMarker extends LinearOpMode {
     DcMotor linearMotor;
     TouchSensor limitSwitch;
     Servo linearServo;
-    CRServo collectionServo;
-    CRServo marker;
+    // CRServo collectionServo;
+    Servo marker;
     CRServo tape;
+    CRServo tapeM;
 
 
     static final double     COUNTS_PER_MOTOR_REV    = 1425.2 ;
@@ -102,8 +101,9 @@ public class DeliverMarker extends LinearOpMode {
     boolean landed = false;
     boolean latched = false;
     boolean kicked = false;
+    int direction = 0;
+    boolean detected = false;
     int goldPosition;
-    int state = 1;
 
     /*
      * IMPORTANT: You need to obtain your own license key to use Vuforia. The string below with which
@@ -137,10 +137,10 @@ public class DeliverMarker extends LinearOpMode {
 
         limitSwitch = hardwareMap.get(TouchSensor.class, "limitSwitch");
         linearServo = hardwareMap.get(Servo.class, "linearServo");
-        collectionServo = hardwareMap.get(CRServo.class, "collectionServo");
-        marker = hardwareMap.get(CRServo.class, "markerServo");
+        //collectionServo = hardwareMap.get(CRServo.class, "collectionServo");
+        marker = hardwareMap.get(Servo.class, "markerServo");
         tape = hardwareMap.get(CRServo.class, "tapeMeasure");
-
+        tapeM = hardwareMap.get(CRServo.class, "tapeServo");
         frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
         frontRight = hardwareMap.get(DcMotor.class, "frontRight");
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");
@@ -188,146 +188,171 @@ public class DeliverMarker extends LinearOpMode {
 
 
         while (opModeIsActive()) {
-            switch(state){
-                case 1:{
-                    runtime.reset();
-                    linearServo.scaleRange(0.0, 1.0);
-                    linearMotor.setTargetPosition(-7122);
-                    linearMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                    linearMotor.setPower(0.5);
-                    if (linearMotor.getCurrentPosition() < -7100){
-                        landed = true;
-                        telemetry.addData("Status:", "Landed");
-                        telemetry.update();
-                        state++;
-                        break;
-                    }
-                    break;
-
+            if (!landed && !latched) {
+                runtime.reset();
+                if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
+                    initTfod();
+                } else {
+                    telemetry.addData("Sorry!", "This device is not compatible with TFOD");
                 }
-                case 2:{
-                    linearServo.setPosition(1);
-                    collectionServo.setPower(1);
-                    sleep(1250);
-                    collectionServo.setPower(0);
-                    latched = true;
-                    telemetry.addData("Status:", "Latched");
-                    telemetry.update();
-                    state++;
-                    break;
-
+                /** Activate Tensor Flow Object Detection. */
+                /** Activate Tensor Flow Object Detection. */
+                if (tfod != null) {
+                    tfod.activate();
                 }
-                case 3:{
-                    if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
-                        initTfod();
-                    } else {
-                        telemetry.addData("Sorry!", "This device is not compatible with TFOD");
-                    }
-                    /** Activate Tensor Flow Object Detection. */
+                while (opModeIsActive()&& !detected) {
                     if (tfod != null) {
-                        tfod.activate();
-                    }
-                    while (opModeIsActive()) {
-                        if (tfod != null) {
-                            // getUpdatedRecognitions() will return null if no new information is available since
-                            // the last time that call was made.
-                            List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
-                            if (updatedRecognitions != null) {
-                                telemetry.addData("# Object Detected", updatedRecognitions.size());
-                                if (updatedRecognitions.size() == 3) {
-                                    int goldMineralX = -1;
-                                    int silverMineral1X = -1;
-                                    int silverMineral2X = -1;
-                                    for (Recognition recognition : updatedRecognitions) {
-                                        if (recognition.getLabel().equals(LABEL_GOLD_MINERAL)) {
-                                            goldMineralX = (int) recognition.getLeft();
-                                        } else if (silverMineral1X == -1) {
-                                            silverMineral1X = (int) recognition.getLeft();
-                                        } else {
-                                            silverMineral2X = (int) recognition.getLeft();
-                                        }
+                        // getUpdatedRecognitions() will return null if no new information is available since
+                        // the last time that call was made.
+                        List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+                        if (updatedRecognitions != null) {
+                            telemetry.addData("# Object Detected", updatedRecognitions.size());
+                            if (updatedRecognitions.size() == 3) {
+                                int goldMineralX = -1;
+                                int silverMineral1X = -1;
+                                int silverMineral2X = -1;
+                                for (Recognition recognition : updatedRecognitions) {
+                                    if (recognition.getLabel().equals(LABEL_GOLD_MINERAL)) {
+                                        goldMineralX = (int) recognition.getLeft();
+                                    } else if (silverMineral1X == -1) {
+                                        silverMineral1X = (int) recognition.getLeft();
+                                    } else {
+                                        silverMineral2X = (int) recognition.getLeft();
                                     }
-                                    if (goldMineralX != -1 && silverMineral1X != -1 && silverMineral2X != -1 && !kicked) {
-                                        if (goldMineralX < silverMineral1X && goldMineralX < silverMineral2X) {
-                                            kicked = true;
-                                            telemetry.addData("Gold Mineral Position", "Left");
-                                            encoderDrive(DRIVE_SPEED, 2, 2, 5);
-                                            turnToPosition(.5, 25);
-                                            encoderDrive(DRIVE_SPEED, 12, 12, 5);
-                                            turnToPosition(.5, -25);
-                                            goldPosition = 0;
+                                }
+                                if (goldMineralX != -1 && silverMineral1X != -1 && silverMineral2X != -1 && !kicked) {
+                                   /*If gold is on the left then go forward 2 inches then turn left and go forward 14
+                                    inches then turn to face depot and drop marker then face crater on other color side
+                                    then drive forward and set power to tape.*/
+                                    if (goldMineralX < silverMineral1X && goldMineralX < silverMineral2X) {
+                                        direction = -1;
+                                        detected = true;
 
-                                        } else if (goldMineralX > silverMineral1X && goldMineralX > silverMineral2X) {
-                                            kicked = true;
-                                            telemetry.addData("Gold Mineral Position", "Right");
-                                            encoderDrive(DRIVE_SPEED, 2, 2, 5);
-                                            turnToPosition(.5, -25);
-                                            encoderDrive(DRIVE_SPEED, 12, 12, 5);
-                                            turnToPosition(.5, 25);
-                                            goldPosition = 2;
+                                    } else if (goldMineralX > silverMineral1X && goldMineralX > silverMineral2X) {
+                                       /*If gold is on the right then go forward 2 inches then turn right and go forward 12
+                                    inches then turn to face depot and go 12 inches and then drop marker then face crater on
+                                    other color side then drive forward and set power to tape.*/
 
-                                        } else {
-                                            kicked = true;
-                                            encoderDrive(DRIVE_SPEED, 2, 2, 5);
-                                            telemetry.addData("Gold Mineral Position", "Center");
-                                            encoderDrive(DRIVE_SPEED, 10, 10, 5);
-                                            goldPosition = 1;
-                                        }
-                                        encoderDrive(.5,5,5,5);
-
-                                        marker.setPower(0.5);
-                                        sleep(1700);
-                                        marker.setPower(0);
-                                        sleep(1300);
-                                        marker.setPower(-0.5);
-                                        tape.setPower(1);
-                                        if (goldPosition != 0) {
-                                            turnToPosition(0.5, 33);
-                                        } else{
-                                            turnToPosition(0.5,-35);
-                                        }
-                                        sleep(1700);
-                                        marker.setPower(0);
-                                        sleep(8000);
-                                        tape.setPower(0);
-                                        break;
-
+                                        direction = 1;
+                                        detected = true;
+                                    } else {
+                                        /*If gold is in the center then go forward 12 inches and drop marker then go backwards
+                                        and face crater on other color side then drive forward and set power to tape.*/
+                                        direction = 0;
+                                        detected = true;
                                     }
-                                } else if (runtime.seconds() >= 10 && !kicked){
-                                    //It has been 20 seconds and we cannot identify the gold
-                                    //Assume middle
-                                    kicked = true;
-                                    encoderDrive(DRIVE_SPEED, 2, 2, 5);
-                                    telemetry.addData("Gold Mineral Position", "Unknown");
-                                    encoderDrive(DRIVE_SPEED, 10, 10, 5);
-                                    encoderDrive(.5,5,5,5);
-                                    marker.setPower(0.5);
-                                    sleep(1700);
-                                    marker.setPower(0);
-                                    sleep(1300);
-                                    marker.setPower(-0.5);
-                                    tape.setPower(1);
-                                    telemetry.addData("Turn","started");
-                                    telemetry.update();
-                                    turnToPosition(0.5,45);
-                                    telemetry.addData("Turn","ended");
-                                    telemetry.update();
-                                    sleep(1700);
-                                    marker.setPower(0);
-                                    sleep(5000);
-                                    break;
 
                                 }
-                                telemetry.update();
+                            } else if (runtime.seconds() >= 5 && !kicked){
+                                //It has been 20 seconds and we cannot identify the gold
+                                //Assume middle
+                                direction = 0;
+                                detected = true;
                             }
+                            telemetry.update();
                         }
                     }
-                    if (tfod != null) {
-                        tfod.shutdown();
-                    }
+                }
+                if (tfod != null) {
+                    tfod.shutdown();
+                }
+                linearServo.scaleRange(0.0, 1.0);
+                linearMotor.setTargetPosition(-7122);
+                linearMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                linearMotor.setPower(0.5);
+                if (linearMotor.getCurrentPosition() < -7100){
+                    landed = true;
+                    telemetry.addData("Status:", "Landed");
+                    telemetry.update();
                 }
             }
+            if (landed && !latched){
+                linearServo.setPosition(1);
+                // collectionServo.setPower(1);
+                sleep(2000);
+                //collectionServo.setPower(0);
+                latched = true;
+                telemetry.addData("Status:", "Latched");
+                telemetry.update();
+            }
+            if (landed && latched) {
+                if (direction==-1) {
+                    kicked = true;
+                    telemetry.addData("Gold Mineral Position", "Left");
+                    encoderDrive(DRIVE_SPEED, 2, 2, 5);
+                    turnToPosition(.5, 25);
+                    encoderDrive(DRIVE_SPEED, 10, 10, 5);
+                    encoderDrive(DRIVE_SPEED, -10, -10, 5);
+                    turnToPosition(.5,60);
+                    encoderDrive(DRIVE_SPEED, 15, 15, 5);
+                    turnToPosition(.5,120);
+                    encoderDrive (DRIVE_SPEED, 14, 14, 5);
+                    turnToPosition(.5,130);
+                    marker.setPosition(0);
+                    sleep(1300);
+                    marker.setPosition(75);
+                    tape.setPower(1);
+                    tapeM.setPower(1);
+                    encoderDrive(.5, -10, -10, 5);
+                    tape.setPower(0);
+                    tapeM.setPower(0);
+                    sleep(5000);
+
+
+                } else if (direction==1) {
+                                       /*If gold is on the right then go forward 2 inches then turn right and go forward 12
+                                    inches then turn to face depot and go 12 inches and then drop marker then face crater on
+                                    other color side then drive forward and set power to tape.*/
+                    kicked = true;
+                    telemetry.addData("Gold Mineral Position", "Right");
+                    encoderDrive(DRIVE_SPEED, 2, 2, 5);
+                    turnToPosition(.5, -25);
+                    encoderDrive(DRIVE_SPEED, 10, 10, 5);
+                    encoderDrive(DRIVE_SPEED, -10, -10, 5);
+                    turnToPosition(.5,60);
+                    encoderDrive(DRIVE_SPEED, 15, 15, 5);
+                    turnToPosition(.5,120);
+                    encoderDrive (DRIVE_SPEED, 14, 14, 5);
+                    turnToPosition(.5,130);
+                    marker.setPosition(0);
+                    sleep(1300);
+                    marker.setPosition(75);
+                    tape.setPower(1);
+                    tapeM.setPower(1);
+                    encoderDrive(.5, -10, -10, 5);
+                    tape.setPower(0);
+                    tapeM.setPower(0);
+                    sleep(5000);
+
+                } else {
+                                        /*If gold is in the center then go forward 12 inches and drop marker then go backwards
+                                        and face crater on other color side then drive forward and set power to tape.*/
+                    kicked = true;
+                    encoderDrive(DRIVE_SPEED, 2, 2, 5);
+                    telemetry.addData("Gold Mineral Position", "Center");
+                    encoderDrive(DRIVE_SPEED, 8, 8, 5);
+                    encoderDrive(DRIVE_SPEED, -8, -8, 5);
+                    turnToPosition(.5,60);
+                    encoderDrive(DRIVE_SPEED, 15, 15, 5);
+                    turnToPosition(.5,120);
+                    encoderDrive (DRIVE_SPEED, 14, 14, 5);
+                    turnToPosition(.5,130);
+                    marker.setPosition(0);
+                    sleep(1300);
+                    marker.setPosition(75);
+                    tape.setPower(1);
+                    tapeM.setPower(1);
+                    encoderDrive(.5, -10, -10, 5);
+                    tape.setPower(0);
+                    tapeM.setPower(0);
+                    sleep(5000);
+
+                }
+            }
+            telemetry.update();
         }
+
+
     }
 
     /**
